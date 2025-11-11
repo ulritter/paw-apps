@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAW Systems - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .logo {
+            height: 80px;
+            margin-bottom: 2rem;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15));
+        }
+
+        .title {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.2rem;
+            font-weight: 300;
+        }
+
+        .user-info {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            color: white;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-email {
+            font-weight: 500;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.3);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .app-card {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .app-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+        }
+
+        .app-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .app-card:nth-child(1) .app-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .app-card:nth-child(2) .app-icon {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .app-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: #2d3748;
+        }
+
+        .app-description {
+            color: #718096;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .app-features {
+            list-style: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .app-features li {
+            color: #4a5568;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .app-features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #48bb78;
+            font-weight: bold;
+        }
+
+        .app-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+        }
+
+        .app-card:nth-child(2) .app-button {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .app-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .apps-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .title {
+                font-size: 2rem;
+            }
+
+            .user-info {
+                position: static;
+                margin-bottom: 2rem;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="user-info" id="userInfo" style="display: none;">
+        <span class="user-email" id="userEmail"></span>
+        <button class="logout-btn" onclick="logout()">Abmelden</button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <img src="/pws-logo.png" alt="PAW Systems" class="logo">
+            <h1 class="title">Willkommen bei PAW Systems</h1>
+            <p class="subtitle">Wählen Sie eine Anwendung</p>
+        </div>
+
+        <div class="apps-grid">
+            <!-- Freelance Crawler -->
+            <a href="/crawler/" class="app-card">
+                <div class="app-icon">🔍</div>
+                <h2 class="app-title">Freelance Crawler</h2>
+                <p class="app-description">
+                    Automatisches Crawling von Freelance-Projekten aus mehreren deutschen Job-Portalen mit intelligenter Filterung.
+                </p>
+                <ul class="app-features">
+                    <li>FreelancerMap, Solcom & Hays Integration</li>
+                    <li>Keyword-basierte Filterung</li>
+                    <li>Automatische Aktualisierung alle 3 Stunden</li>
+                    <li>Sortierung nach Veröffentlichungsdatum</li>
+                </ul>
+                <button class="app-button">Crawler öffnen →</button>
+            </a>
+
+            <!-- PDF Converter -->
+            <a href="/converter/" class="app-card">
+                <div class="app-icon">📄</div>
+                <h2 class="app-title">PDF Converter</h2>
+                <p class="app-description">
+                    KI-gestützte Konvertierung von PDF-Dokumenten zu Excel mit automatischer Tabellenerkennung.
+                </p>
+                <ul class="app-features">
+                    <li>Claude AI für intelligente Extraktion</li>
+                    <li>DATEV Lohnjournal Unterstützung</li>
+                    <li>Automatische Euro/Cent Zusammenführung</li>
+                    <li>CSV Export mit deutscher Formatierung</li>
+                </ul>
+                <button class="app-button">Converter öffnen →</button>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication on page load - landing page requires login
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/crawler/auth/check', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                
+                if (!data.authenticated) {
+                    // Redirect to login if not authenticated
+                    window.location.href = '/login.html';
+                    return false;
+                }
+                
+                // Update UI with user info
+                const userEmail = data.email;
+                const userEmailElement = document.getElementById('userEmail');
+                const userInfoElement = document.getElementById('userInfo');
+                
+                if (userEmailElement && userInfoElement) {
+                    userEmailElement.textContent = userEmail;
+                    userInfoElement.style.display = 'flex';
+                }
+                return true;
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                window.location.href = '/login.html';
+                return false;
+            }
+        }
+
+        // Logout function
+        async function logout() {
+            try {
+                await fetch('/api/crawler/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                window.location.href = '/login.html';
+            } catch (error) {
+                console.error('Logout failed:', error);
+                window.location.href = '/login.html';
+            }
+        }
+
+        // Run auth check immediately
+        checkAuth();
+    </script>
+</body>
+</html>

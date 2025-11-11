@@ -1,0 +1,140 @@
+{
+  "keywords": {
+    "salesforce": [
+      "salesforce",
+      "apex",
+      "lightning",
+      "crm",
+      "service cloud",
+      "sales cloud",
+      "marketing cloud",
+      "commerce cloud",
+      "einstein",
+      "vlocity"
+    ],
+    "data_science": [
+      "data science",
+      "machine learning",
+      "ml",
+      "ai",
+      "artificial intelligence",
+      "python",
+      "tensorflow",
+      "pytorch",
+      "scikit-learn",
+      "pandas",
+      "numpy",
+      "deep learning",
+      "neural network",
+      "data analysis",
+      "statistics",
+      "r programming"
+    ],
+    "java": [
+      "java",
+      "spring",
+      "spring boot",
+      "hibernate",
+      "jee",
+      "j2ee",
+      "maven",
+      "gradle",
+      "microservices",
+      "kafka"
+    ],
+    "python": [
+      "python",
+      "django",
+      "flask",
+      "fastapi",
+      "pandas",
+      "numpy",
+      "pytest",
+      "backend",
+      "api"
+    ],
+    "llm": [
+      "llm",
+      "large language model",
+      "gpt",
+      "chatgpt",
+      "openai",
+      "claude",
+      "anthropic",
+      "gemini",
+      "generative ai",
+      "gen ai",
+      "prompt engineering",
+      "langchain",
+      "llama",
+      "transformer",
+      "bert",
+      "rag",
+      "retrieval augmented generation",
+      "vector database",
+      "embeddings",
+      "fine-tuning",
+      "nlp",
+      "natural language processing",
+      "python",
+      "pytorch",
+      "tensorflow",
+      "hugging face",
+      "entwickler"
+    ]
+  },
+  "freelancermap": {
+    "base_url": "https://www.freelancermap.de",
+    "search_path": "/projektboerse.html",
+    "queries": [
+      {
+        "query": "salesforce",
+        "keywords": "salesforce"
+      },
+      {
+        "query": "data science",
+        "keywords": "data_science"
+      },
+      {
+        "query": "llm",
+        "keywords": "llm"
+      }
+    ]
+  },
+  "solcom": {
+    "base_url": "https://www.solcom.de",
+    "search_path": "/de/projektportal",
+    "queries": [
+      {
+        "query": "salesforce",
+        "keywords": "salesforce"
+      },
+      {
+        "query": "data science",
+        "keywords": "data_science"
+      },
+      {
+        "query": "llm",
+        "keywords": "llm"
+      }
+    ]
+  },
+  "hays": {
+    "base_url": "https://www.hays.de",
+    "search_path": "/jobsuche/stellenangebote-jobs/j/Contracting/3/p/1",
+    "queries": [
+      {
+        "query": "salesforce",
+        "keywords": "salesforce"
+      },
+      {
+        "query": "data science",
+        "keywords": "data_science"
+      },
+      {
+        "query": "llm",
+        "keywords": "llm"
+      }
+    ]
+  }
+}

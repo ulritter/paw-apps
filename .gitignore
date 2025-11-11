@@ -1,0 +1,95 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Database data
+postgres_data/
+
+# SSL certificates
+ssl/*.pem
+ssl/*.key
+ssl/*.crt
+
+# Logs
+*.log
+logs/
+*/logs/
+
+# Debug artifacts
+debug_artifacts/
+*/debug_artifacts/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+venv/
+env/
+ENV/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+
+# React build
+build/
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# Backups
+*.sql
+backup_*.sql
+*.tar.gz
+*.backup
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Documents data (if contains sensitive info)
+documents_data/
+*/documents_data/

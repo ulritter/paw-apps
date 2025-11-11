@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Freelance Crawler</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; 
+      margin: 0;
+      padding: 0; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-container {
+      background: white;
+      border-radius: 15px;
+      padding: 3rem;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 450px;
+    }
+    h1 {
+      color: #333;
+      margin: 0 0 0.5rem 0;
+      font-size: 2rem;
+      text-align: center;
+    }
+    .subtitle {
+      color: #666;
+      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      color: #333;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+    input {
+      width: 100%;
+      padding: 0.875rem;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    input:disabled {
+      background-color: #f5f5f5;
+      cursor: not-allowed;
+    }
+    .btn {
+      width: 100%;
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+    .btn:hover:not(:disabled) {
+      background: #5568d3;
+    }
+    .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .message {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+      display: none;
+    }
+    .message.error {
+      background: #fee;
+      color: #c33;
+      border: 1px solid #fcc;
+      display: block;
+    }
+    .message.success {
+      background: #efe;
+      color: #3c3;
+      border: 1px solid #cfc;
+      display: block;
+    }
+    .message.info {
+      background: #eef;
+      color: #33c;
+      border: 1px solid #ccf;
+      display: block;
+    }
+    .code-sent-info {
+      display: none;
+      background: #f0f7ff;
+      border: 1px solid #b3d9ff;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+      color: #0066cc;
+    }
+    .code-sent-info.show {
+      display: block;
+    }
+    #codeGroup {
+      display: none;
+    }
+    #codeGroup.show {
+      display: block;
+    }
+    .resend-link {
+      text-align: center;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+    .resend-link a {
+      color: #667eea;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .resend-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h1>🔐 Login</h1>
+    <p class="subtitle">Freelance Crawler System</p>
+    
+    <div id="message" class="message"></div>
+    <div id="codeSentInfo" class="code-sent-info"></div>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="email">E-Mail Adresse</label>
+        <input 
+          type="email" 
+          id="email" 
+          name="email" 
+          placeholder="ihr.name@paw-systems.com"
+          required
+          autocomplete="email"
+        >
+      </div>
+      
+      <div id="codeGroup" class="form-group">
+        <label for="code">Authentifizierungscode</label>
+        <input 
+          type="text" 
+          id="code" 
+          name="code" 
+          placeholder="8-stelliger Code"
+          maxlength="8"
+          autocomplete="off"
+        >
+      </div>
+      
+      <button type="submit" class="btn" id="submitBtn">Code anfordern</button>
+      
+      <div class="resend-link" id="resendLink" style="display: none;">
+        <a onclick="resendCode()">Code erneut senden</a>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // Use relative path - nginx will route /api/crawler/ to the API service
+    const API_URL = '/api/crawler';
+    let emailSent = false;
+    
+    const form = document.getElementById('loginForm');
+    const emailInput = document.getElementById('email');
+    const codeInput = document.getElementById('code');
+    const codeGroup = document.getElementById('codeGroup');
+    const submitBtn = document.getElementById('submitBtn');
+    const messageDiv = document.getElementById('message');
+    const codeSentInfo = document.getElementById('codeSentInfo');
+    const resendLink = document.getElementById('resendLink');
+    
+    // Don't check auth on login page - just let users log in
+    // After successful login, they'll be redirected by the verify-code endpoint
+    
+    function showMessage(text, type = 'info') {
+      messageDiv.textContent = text;
+      messageDiv.className = `message ${type}`;
+    }
+    
+    function hideMessage() {
+      messageDiv.className = 'message';
+    }
+    
+    async function sendAuthCode(email) {
+      try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sende Code...';
+        
+        const response = await fetch(`${API_URL}/auth/send-code`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email }),
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          emailSent = true;
+          emailInput.disabled = true;
+          codeGroup.classList.add('show');
+          submitBtn.textContent = 'Anmelden';
+          codeSentInfo.textContent = `✅ Ein Authentifizierungscode wurde an ${email} gesendet. Der Code ist ${data.expires_in_minutes} Minuten gültig.`;
+          codeSentInfo.classList.add('show');
+          resendLink.style.display = 'block';
+          codeInput.focus();
+          hideMessage();
+        } else {
+          showMessage(data.detail || 'Fehler beim Senden des Codes', 'error');
+        }
+      } catch (error) {
+        showMessage('Netzwerkfehler. Bitte versuchen Sie es erneut.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+      }
+    }
+    
+    async function verifyCode(email, code) {
+      try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Verifiziere...';
+        
+        const response = await fetch(`${API_URL}/auth/verify-code`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({ email, code }),
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          showMessage('✅ Erfolgreich angemeldet! Weiterleitung...', 'success');
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1000);
+        } else {
+          showMessage(data.detail || 'Ungültiger Code', 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Anmelden';
+        }
+      } catch (error) {
+        showMessage('Netzwerkfehler. Bitte versuchen Sie es erneut.', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Anmelden';
+      }
+    }
+    
+    function resendCode() {
+      emailSent = false;
+      codeInput.value = '';
+      codeSentInfo.classList.remove('show');
+      resendLink.style.display = 'none';
+      sendAuthCode(emailInput.value);
+    }
+    
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = emailInput.value.trim();
+      
+      // Validate email domain
+      if (!email.endsWith('@paw-systems.com')) {
+        showMessage('Nur E-Mail-Adressen von paw-systems.com sind erlaubt', 'error');
+        return;
+      }
+      
+      if (!emailSent) {
+        // Step 1: Send auth code
+        await sendAuthCode(email);
+      } else {
+        // Step 2: Verify code
+        const code = codeInput.value.trim();
+        
+        if (code.length !== 8) {
+          showMessage('Bitte geben Sie den 8-stelligen Code ein', 'error');
+          return;
+        }
+        
+        await verifyCode(email, code);
+      }
+    });
+    
+    // Auto-submit when code is 8 characters
+    codeInput.addEventListener('input', (e) => {
+      const code = e.target.value.trim();
+      if (code.length === 8) {
+        form.dispatchEvent(new Event('submit'));
+      }
+    });
+  </script>
+</body>
+</html>

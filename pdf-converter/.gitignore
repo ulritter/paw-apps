@@ -1,0 +1,34 @@
+# Environment variables - NEVER commit API keys!
+.env
+.env.*
+
+# Logs
+logs/
+*.log
+backend/logs/
+nginx/logs/
+
+# Dependencies
+node_modules/
+
+# Build outputs
+build/
+dist/
+frontend/build/
+
+# SSL certificates
+nginx/ssl/*.pem
+nginx/ssl/*.key
+nginx/ssl/*.crt
+
+# Docker
+docker-compose.override.yml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp

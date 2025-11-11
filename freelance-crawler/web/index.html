@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Freelance Jobs</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+        <button class="home-btn" onclick="window.location.href='/'">
+          ← Home
+        </button>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <img src="/pws-logo.png" alt="PAW Systems" style="height: 40px;">
+          <h1 style="margin: 0;">🚀 Freelance Job Crawler</h1>
+        </div>
+        <div class="user-info">
+          <span class="user-email" id="userEmail"></span>
+          <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+      </div>
+    </header>
+    
+    <!-- Tab Navigation -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('jobs')">📋 Crawl Results</button>
+      <button class="tab" onclick="switchTab('documents')">📄 Documents</button>
+      <button class="tab" onclick="switchTab('config')">⚙️ Configuration Editor</button>
+    </div>
+    
+    <!-- Jobs Tab -->
+    <div id="jobsTab" class="tab-content active">
+      <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button class="refresh-btn" id="displayBtn" onclick="toggleDisplay()" style="background: #ed8936;">📊 Ansicht: Tabelle</button>
+          <button class="refresh-btn" id="groupingBtn" onclick="toggleGrouping()">🔄 Gruppierung: Provider → Query</button>
+          <button class="refresh-btn" onclick="loadJobs()">🔄 Aktualisieren</button>
+          <button class="refresh-btn" id="crawlerBtn" onclick="triggerCrawler()" style="background: #48bb78;">▶️ Crawler starten</button>
+        </div>
+      </div>
+      
+      <!-- Progress Bar (hidden by default) -->
+      <div id="progressContainer" style="display: none; margin: 1rem 0; background: white; border-radius: 8px; padding: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+          <span style="font-weight: 600; color: #2d3748;">Crawler läuft...</span>
+          <span id="progressText" style="color: #718096;">0%</span>
+        </div>
+        <div style="background: #e2e8f0; border-radius: 8px; height: 24px; overflow: hidden;">
+          <div id="progressBar" style="background: linear-gradient(90deg, #48bb78 0%, #38a169 100%); height: 100%; width: 0%; transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.85rem;"></div>
+        </div>
+      </div>
+      
+      <!-- Log Window (hidden by default) -->
+      <div id="logContainer" style="display: none; margin: 1rem 0; background: #1a202c; border-radius: 8px; padding: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-family: 'Courier New', monospace; font-size: 0.85rem; max-height: 150px; overflow-y: auto;">
+        <div id="logWindow" style="color: #e2e8f0; line-height: 1.6;">
+          <!-- Log messages will appear here -->
+        </div>
+      </div>
+      
+      <!-- Summary Status -->
+      <div id="jobsSummary" style="display: none; background: white; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <p style="margin: 0; color: #333; font-size: 1.1rem; font-weight: 500;"></p>
+      </div>
+      
+      <div id="jobs" class="loading">Lade Jobs...</div>
+    </div>
+    
+    <!-- Config Editor Tab -->
+    <div id="configTab" class="tab-content">
+      <!-- Mode Toggle -->
+      <div style="background: white; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin: 0; color: #2d3748;">⚙️ Configuration Editor</h2>
+        <div style="display: flex; gap: 0.5rem;">
+          <button id="simpleModeBtn" class="config-btn" onclick="switchConfigMode('simple')" style="background: #48bb78;">🧙 Simple Mode</button>
+          <button id="expertModeBtn" class="config-btn" onclick="switchConfigMode('expert')" style="background: #cbd5e0; color: #4a5568;">👨‍💻 Expert Mode</button>
+        </div>
+      </div>
+      
+      <!-- Simple Mode (Wizard) -->
+      <div id="simpleMode" style="display: block;">
+        <!-- Quick Actions -->
+        <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          <h3 style="margin: 0 0 1rem 0; color: #2d3748;">🚀 Quick Actions</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+            <button class="wizard-card" onclick="openWizard('manageKeywords')">
+              <div class="wizard-icon">🏷️</div>
+              <div class="wizard-title">Manage Keywords</div>
+              <div class="wizard-desc">Add or edit keyword filters</div>
+            </button>
+            <button class="wizard-card" onclick="openWizard('viewQueries')">
+              <div class="wizard-icon">📋</div>
+              <div class="wizard-title">View and Edit All Queries</div>
+              <div class="wizard-desc">View, add, and manage searches</div>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Current Configuration Summary -->
+        <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          <h3 style="margin: 0 0 1rem 0; color: #2d3748;">📊 Current Configuration</h3>
+          <div id="configSummary" style="color: #718096;">
+            Loading configuration summary...
+          </div>
+        </div>
+      </div>
+      
+      <!-- Expert Mode (JSON Editor) -->
+      <div id="expertMode" style="display: none;">
+        <div class="config-editor-container">
+          <div class="config-editor">
+            <textarea id="configTextarea" class="config-textarea" placeholder="Loading configuration..."></textarea>
+            <div class="config-actions">
+              <button class="config-btn success" onclick="saveConfigVersion()">💾 Save New Version</button>
+              <button class="config-btn" onclick="validateConfig()">✓ Validate JSON</button>
+              <button class="config-btn" id="activateBtn" onclick="activateCurrentConfig()" disabled>🚀 Activate for Next Run</button>
+            </div>
+            <div class="config-actions" style="margin-top: 0.5rem;">
+              <button class="config-btn" onclick="exportConfig()" style="background: #4299e1;">📥 Export to File</button>
+              <button class="config-btn" onclick="importConfig()" style="background: #ed8936;">📤 Import from File</button>
+            </div>
+            <div id="configStatus" style="margin-top: 1rem; padding: 0.75rem; border-radius: 8px; display: none;"></div>
+          </div>
+          
+          <div class="version-history">
+            <h3>📜 Version History</h3>
+            <div class="version-list" id="versionList">
+              <div style="text-align: center; color: #718096; padding: 2rem;">Loading versions...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Wizard Modal -->
+      <div id="wizardModal" class="wizard-modal" style="display: none;">
+        <div class="wizard-modal-content">
+          <div class="wizard-modal-header">
+            <h2 id="wizardTitle" style="margin: 0; color: #2d3748;">Wizard</h2>
+            <button class="wizard-close" onclick="closeWizard()">✕</button>
+          </div>
+          <div id="wizardBody" class="wizard-modal-body">
+            <!-- Wizard content will be inserted here -->
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Documents Tab -->
+    <div id="documentsTab" class="tab-content">
+      <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h2 style="margin: 0 0 1rem 0; color: #2d3748;">📄 Document Management</h2>
+        
+        <!-- Upload Area -->
+        <div id="dropZone" class="drop-zone">
+          <div class="drop-zone-content">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📁</div>
+            <p style="font-size: 1.1rem; font-weight: 600; margin: 0 0 0.5rem 0;">Drag & Drop files here</p>
+            <p style="color: #718096; margin: 0 0 1rem 0;">or</p>
+            <input type="file" id="fileInput" multiple style="display: none;" onchange="handleFileSelect(event)">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">📤 Choose Files</button>
+            <p style="color: #718096; font-size: 0.85rem; margin-top: 1rem;">Supported: PDF, DOC, DOCX, TXT, Images</p>
+          </div>
+        </div>
+        
+        <!-- Upload Progress -->
+        <div id="uploadProgress" style="display: none; margin-top: 1rem; padding: 1rem; background: #f7fafc; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <span id="uploadFileName" style="font-weight: 600;"></span>
+            <span id="uploadPercent" style="color: #718096;">0%</span>
+          </div>
+          <div style="background: #e2e8f0; border-radius: 8px; height: 8px; overflow: hidden;">
+            <div id="uploadBar" style="background: #48bb78; height: 100%; width: 0%; transition: width 0.3s;"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Documents List -->
+      <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 style="margin: 0; color: #2d3748;">📚 Stored Documents</h3>
+          <button class="refresh-btn" onclick="loadDocuments()" style="padding: 0.5rem 1rem; font-size: 0.9rem;">🔄 Refresh</button>
+        </div>
+        <div id="documentsList" style="min-height: 200px;">
+          <p style="text-align: center; color: #718096; padding: 2rem;">Loading documents...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
