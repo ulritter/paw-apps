@@ -270,40 +270,56 @@ async def convert_ai(
         # Create the prompt
         prompt_text = """You are a precise data extraction specialist for German DATEV payroll documents (Lohnjournale).
 
-CRITICAL INSTRUCTIONS:
+⚠️ CRITICAL: VERTICAL LINES ARE COLUMN SEPARATORS, NOT DATA!
 
-1. **Column Recognition**: DATEV documents often have VERY NARROW columns where Euro amounts are split:
-   - Left column: Euro amount (e.g., "867")
-   - Right column: Cents (e.g., "00")
-   - These are separated by a thin vertical line
-   - YOU MUST MERGE these into ONE value: "867,00"
+DATEV documents use THIN VERTICAL LINES to separate Euro and Cent columns:
+- Example in PDF: "867 | 00" (vertical line between)
+- You might see: "867|00" or "867 00" with a line
+- CORRECT extraction: "867,00" (ONE merged value)
+- WRONG: "86700" or "867 00" or keeping them separate
 
-2. **Exact Data Extraction**:
-   - Extract EVERY number EXACTLY as shown
-   - Do NOT skip any rows or columns
-   - Do NOT merge unrelated data
-   - Preserve empty cells as empty strings ""
+STEP-BY-STEP PROCESS:
 
-3. **Number Formatting Rules**:
+1. **Identify Column Structure FIRST**:
+   - Look for thin vertical lines in the table
+   - These lines separate Euro (left) from Cents (right)
+   - Example: If you see "867" then a line then "00", merge to "867,00"
+   - If you see "1.858" then a line then "71", merge to "1858,71"
+
+2. **Recognize Monetary Columns**:
+   - Headers like: "Brutto", "Netto", "LSt", "KiSt", "SolZ", "Steuer"
+   - ANY column with Euro amounts will have cents in the next narrow column
+   - The cents column is usually 2 digits wide
+
+3. **Extract Each Row Carefully**:
+   - Read left-to-right across the row
+   - When you hit a Euro amount, check the NEXT column for cents
+   - Merge them with comma: "euros,cents"
+   - Continue to next data column (skip the cents column)
+
+4. **Number Formatting Rules**:
    - Use comma (,) as decimal separator: "867,00" NOT "867.00"
    - NO thousands separators: "1234,00" NOT "1.234,00"
    - Always include 2 decimal places for monetary amounts
    - If cents column shows "0" or blank, use "00": "867,00"
 
-4. **Column Headers**:
+5. **Column Headers**:
    - Identify German DATEV column names accurately
    - Common headers: "Mitarbeiter-Nr", "Name", "Brutto", "Netto", "LSt", "KiSt", "SolZ"
    - Use the EXACT header text from the document
+   - Do NOT create headers for the cents columns (they get merged)
 
-5. **Table Structure**:
+6. **Table Structure**:
    - Main employee table: One row per employee with ALL their data
    - Summary tables: Separate tables for totals
    - Tax tables: Separate tables for tax breakdowns
+   - Each row must have the SAME number of columns as headers
 
-6. **Quality Checks**:
+7. **Quality Checks**:
    - Count rows: If document shows 10 employees, extract 10 rows
    - Verify numbers: Cross-check totals match individual entries
    - Check alignment: Each value must be in the correct column
+   - NO concatenated values like "86700" or "1.85871"
 
 OUTPUT FORMAT (JSON only, no markdown):
 
