@@ -236,7 +236,7 @@ async def convert_ai(
     """
     AI-powered extraction via Anthropic Claude.
     
-    Uses Claude Sonnet 4 to intelligently extract structured data from PDFs.
+    Uses Claude Sonnet 4.5 to intelligently extract structured data from PDFs.
     Requires authentication.
     """
     try:

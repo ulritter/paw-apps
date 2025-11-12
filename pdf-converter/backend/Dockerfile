@@ -20,4 +20,6 @@ USER appuser
 
 EXPOSE 8001
 
-CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8001"]
+# Use multiple workers for concurrent request handling
+# Workers = (2 x CPU cores) + 1 is a good starting point
+CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "4"]
