@@ -93,3 +93,4 @@ temp/
 # Documents data (if contains sensitive info)
 documents_data/
 */documents_data/
+backups/

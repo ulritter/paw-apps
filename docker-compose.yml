@@ -48,6 +48,8 @@ services:
       - crawler-config:/app/config
       - ./freelance-crawler/debug_artifacts:/debug_artifacts
       - ./freelance-crawler/documents_data:/app/documents
+      - ./freelance-crawler/backup_database.sh:/app/backup_database.sh:ro
+      - ./backups:/app/backups
     networks:
       - paw-network
 
