@@ -173,6 +173,9 @@ SMTP_FROM=your-email@gmail.com
 # AI Service
 ANTHROPIC_API_KEY=sk-ant-...
 
+# Crawler Configuration
+JOB_RETENTION_DAYS=30  # Days to keep jobs before automatic purge (default: 30)
+
 # Production
 DOMAIN_NAME=your-domain.com
 CERTBOT_EMAIL=admin@your-domain.com
@@ -388,19 +391,27 @@ All protected pages include:
 ## 🔍 Key Features
 
 ### Freelance Crawler
-- Multi-provider job scraping
-- Selenium-based automation
-- Job filtering and processing
-- Configuration management
-- Document upload/management
-- Export to CSV
+- **Multi-provider job scraping** - Automated crawling from multiple job boards
+- **Selenium-based automation** - Headless browser for JavaScript-heavy sites
+- **Job filtering and processing** - Mark jobs as processed, filter by source
+- **Date-based filtering** - Filter jobs by scrape date (last 7/14/30 days)
+- **CSV Export** - Download entire jobs database as CSV file
+- **Configuration management** - JSON-based crawler configuration with wizard
+- **Document upload/management** - Store and manage application documents
+- **Scheduled crawling** - Automatic crawling every 3 hours (00:07, 03:07, etc.)
+- **Automatic purge** - Old jobs deleted nightly (configurable retention period)
+- **Database backup** - Daily automated backups at 2:00 AM
 
 ### PDF Converter
-- AI-powered PDF analysis (Claude Sonnet)
-- Automatic table detection
-- Excel/CSV export
-- German formatting support
-- Drag-and-drop upload
+- **AI-powered PDF analysis** - Uses Claude Sonnet 4.5 for intelligent extraction
+- **Automatic table detection** - Recognizes complex table structures
+- **German DATEV support** - Specialized for German payroll documents
+- **Euro/Cent column merging** - Intelligently merges split monetary columns
+- **Excel/CSV export** - Download extracted data in spreadsheet format
+- **German formatting** - Comma decimal separators, proper number formatting
+- **Drag-and-drop upload** - Easy file upload interface
+- **Concurrent processing** - 4 workers for simultaneous conversions
+- **Authentication required** - Secure access control
 
 ## 🐛 Troubleshooting
 
@@ -456,6 +467,12 @@ When working with this application:
 6. **Database schema is simple** - Users must be manually added
 7. **Authentication uses email codes** - No passwords
 8. **JWT tokens in httpOnly cookies** - Path must be "/"
+9. **Crawler has automated tasks** - Scheduled crawling, backup, and purge
+10. **Job retention is configurable** - Set `JOB_RETENTION_DAYS` in `.env`
+11. **CSV export downloads all jobs** - No pagination limit on export
+12. **Date filter uses created_at** - Not posted date, filters by scrape date
+13. **PDF converter uses 4 workers** - Can handle concurrent conversions
+14. **Container names matter** - Crawler API calls `paw_selenium_crawler` not `selenium_crawler`
 
 ### Production Checklist
 
@@ -471,15 +488,39 @@ When working with this application:
 
 ## 🔄 Maintenance
 
-### Regular Tasks
+### Automated Tasks
+
+The crawler API includes a scheduler that runs automated maintenance tasks:
+
+| Time | Task | Description |
+|------|------|-------------|
+| **00:07, 03:07, 06:07, 09:07, 12:07, 15:07, 18:07, 21:07** | Crawler Job | Scrapes job boards every 3 hours |
+| **02:00 AM** | Database Backup | Daily automated backup to `/app/backups` |
+| **02:05 AM** | Job Purge | Deletes jobs older than `JOB_RETENTION_DAYS` (default: 30 days) |
+
+**Configuration:**
+- Set `JOB_RETENTION_DAYS` in `.env` to change retention period
+- Backups are stored in the mounted `/app/backups` volume
+- Purge runs 5 minutes after backup to ensure old data is backed up first
+
+**Logs:**
+```bash
+# View scheduler logs
+docker compose logs crawler-api | grep "Scheduler"
+
+# Check purge results
+docker compose logs crawler-api | grep "purge"
+```
+
+### Manual Tasks
 
 - Monitor SSL certificate expiry (auto-renewed)
 - Check application logs for errors
 - Update Docker images periodically
-- Backup PostgreSQL database
 - Review and rotate API keys
+- Monitor disk space (backups and database)
 
-### Backup Database
+### Manual Database Backup
 
 ```bash
 docker compose exec db pg_dump -U freelance pawsystems > backup.sql

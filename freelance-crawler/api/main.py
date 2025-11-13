@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Query, BackgroundTasks, HTTPException, Cookie, Response, Depends, Header, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, EmailStr, validator
 import psycopg2
 import os
@@ -18,6 +18,8 @@ from apscheduler.triggers.cron import CronTrigger
 import logging
 import threading
 from typing import Optional
+import csv
+import io
 
 load_dotenv()
 
@@ -113,6 +115,36 @@ def scheduled_backup_job():
     except Exception as e:
         logger.error(f"Scheduled database backup error: {str(e)}")
 
+def scheduled_purge_job():
+    """Purge old jobs from database automatically on schedule"""
+    try:
+        logger.info(f"Starting scheduled job purge (retention: {JOB_RETENTION_DAYS} days)...")
+        
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Delete jobs older than retention period
+        cur.execute("""
+            DELETE FROM jobs
+            WHERE created_at < NOW() - INTERVAL '%s days'
+            RETURNING id;
+        """, (JOB_RETENTION_DAYS,))
+        
+        deleted_count = cur.rowcount
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        logger.info(f"✅ Scheduled job purge completed: {deleted_count} old jobs deleted")
+        
+    except Exception as e:
+        logger.error(f"Scheduled job purge error: {str(e)}")
+        try:
+            conn.rollback()
+            conn.close()
+        except:
+            pass
+
 @app.on_event("startup")
 def start_scheduler():
     """Start the background scheduler on application startup"""
@@ -134,9 +166,19 @@ def start_scheduler():
         replace_existing=True
     )
 
+    # Schedule job purge to run daily at 2:05 AM (after backup)
+    scheduler.add_job(
+        scheduled_purge_job,
+        CronTrigger(hour=2, minute=5),
+        id='purge_job',
+        name=f'Daily job purge at 2:05 AM (retention: {JOB_RETENTION_DAYS} days)',
+        replace_existing=True
+    )
+
     scheduler.start()
     logger.info("Scheduler started - Crawler will run every 3 hours")
     logger.info("Scheduler started - Database backup will run daily at 2:00 AM")
+    logger.info(f"Scheduler started - Job purge will run daily at 2:05 AM (retention: {JOB_RETENTION_DAYS} days)")
 
 @app.on_event("shutdown")
 def shutdown_scheduler():
@@ -162,6 +204,10 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM = os.getenv("SMTP_FROM", SMTP_USER)
+
+# Job Retention Configuration
+JOB_RETENTION_DAYS = int(os.getenv("JOB_RETENTION_DAYS", "30"))
+logger.info(f"Job retention configured: {JOB_RETENTION_DAYS} days")
 
 # Pydantic Models
 class EmailRequest(BaseModel):
@@ -479,27 +525,40 @@ async def logout(response: Response):
     return {"message": "Logged out successfully"}
 
 @app.get("/jobs")
-def get_jobs(source: str | None = None, limit: int = Query(50, ge=1, le=500)):
+def get_jobs(
+    source: str | None = None, 
+    limit: int = Query(50, ge=1, le=500),
+    days: int | None = Query(None, description="Filter by created_at within last N days")
+):
     try:
         conn = get_db_connection()
         cur = conn.cursor()
 
+        # Build WHERE clause
+        where_clauses = []
+        params = []
+        
         if source:
-            cur.execute("""
-                SELECT id, source, title, link, company, location, posted, posted_date, created_at, processed
-                FROM jobs
-                WHERE source = %s
-                ORDER BY posted_date DESC NULLS LAST, created_at DESC
-                LIMIT %s;
-            """, (source, limit))
-        else:
-            cur.execute("""
-                SELECT id, source, title, link, company, location, posted, posted_date, created_at, processed
-                FROM jobs
-                ORDER BY posted_date DESC NULLS LAST, created_at DESC
-                LIMIT %s;
-            """, (limit,))
-
+            where_clauses.append("source = %s")
+            params.append(source)
+        
+        if days is not None:
+            where_clauses.append("created_at >= NOW() - INTERVAL '%s days'")
+            params.append(days)
+        
+        where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+        
+        # Execute query
+        query = f"""
+            SELECT id, source, title, link, company, location, posted, posted_date, created_at, processed
+            FROM jobs
+            WHERE {where_sql}
+            ORDER BY posted_date DESC NULLS LAST, created_at DESC
+            LIMIT %s;
+        """
+        params.append(limit)
+        
+        cur.execute(query, tuple(params))
         rows = cur.fetchall()
         cur.close()
         conn.close()
@@ -523,6 +582,69 @@ def get_jobs(source: str | None = None, limit: int = Query(50, ge=1, le=500)):
         # If table doesn't exist yet, return empty list instead of error
         print(f"Warning: Could not fetch jobs: {e}")
         return []
+
+@app.get("/jobs/export")
+def export_jobs_csv(email: str = Depends(verify_auth_token)):
+    """
+    Export all jobs to CSV file.
+    Requires authentication.
+    """
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Fetch all jobs
+        cur.execute("""
+            SELECT id, source, title, company, location, posted, posted_date, link, created_at, processed
+            FROM jobs
+            ORDER BY posted_date DESC NULLS LAST, created_at DESC;
+        """)
+        
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        
+        # Create CSV in memory
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write header
+        writer.writerow([
+            'ID', 'Source', 'Title', 'Company', 'Location', 
+            'Posted', 'Posted Date', 'Link', 'Scraped At', 'Processed'
+        ])
+        
+        # Write data rows
+        for row in rows:
+            writer.writerow([
+                row[0],  # id
+                row[1],  # source
+                row[2],  # title
+                row[3],  # company
+                row[4],  # location
+                row[5],  # posted
+                row[6].isoformat() if row[6] else '',  # posted_date
+                row[7],  # link
+                row[8].isoformat() if row[8] else '',  # created_at
+                'Yes' if row[9] else 'No'  # processed
+            ])
+        
+        # Prepare response
+        output.seek(0)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"freelance_jobs_{timestamp}.csv"
+        
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Error exporting jobs to CSV: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to export jobs: {str(e)}")
 
 @app.get("/jobs/stats")
 def get_job_stats():

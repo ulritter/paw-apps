@@ -34,11 +34,23 @@
     <!-- Jobs Tab -->
     <div id="jobsTab" class="tab-content active">
       <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
           <button class="refresh-btn" id="displayBtn" onclick="toggleDisplay()" style="background: #ed8936;">📊 Ansicht: Tabelle</button>
           <button class="refresh-btn" id="groupingBtn" onclick="toggleGrouping()">🔄 Gruppierung: Provider → Query</button>
           <button class="refresh-btn" onclick="loadJobs()">🔄 Aktualisieren</button>
           <button class="refresh-btn" id="crawlerBtn" onclick="triggerCrawler()" style="background: #48bb78;">▶️ Crawler starten</button>
+          <button class="refresh-btn" onclick="exportJobsCSV()" style="background: #4299e1;">📥 CSV Export</button>
+          
+          <!-- Date Filter -->
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: auto;">
+            <label for="dateFilter" style="font-weight: 500; color: #2d3748; white-space: nowrap;">📅 Zeitraum:</label>
+            <select id="dateFilter" onchange="applyDateFilter()" style="padding: 0.5rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; background: white; font-size: 0.9rem; cursor: pointer; font-weight: 500;">
+              <option value="">Kein Filter</option>
+              <option value="7">Sieben Tage</option>
+              <option value="14">Zwei Wochen</option>
+              <option value="30">Ein Monat</option>
+            </select>
+          </div>
         </div>
       </div>
       

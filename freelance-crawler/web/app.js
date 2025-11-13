@@ -3,6 +3,7 @@ const API_URL = '/api/crawler';
 
 let groupingMode = 'provider-query'; // or 'query-provider'
 let displayMode = 'table'; // or 'cards'
+let dateFilterDays = null; // null = no filter, 7/14/30 = days
 
 // Check authentication on page load
 async function checkAuth() {
@@ -49,7 +50,13 @@ async function loadJobs() {
   const container = document.getElementById("jobs");
   
   try {
-    const res = await fetch(`${API_URL}/jobs?limit=500`, {
+    // Build URL with optional date filter
+    let url = `${API_URL}/jobs?limit=500`;
+    if (dateFilterDays !== null) {
+      url += `&days=${dateFilterDays}`;
+    }
+    
+    const res = await fetch(url, {
       credentials: 'include'
     });
     
@@ -2163,4 +2170,64 @@ async function saveWizardConfig() {
   } catch (error) {
     alert('Error saving configuration: ' + error.message);
   }
+}
+
+// Export jobs to CSV
+async function exportJobsCSV() {
+  try {
+    console.log('Exporting jobs to CSV...');
+    
+    // Fetch CSV from API
+    const response = await fetch(`${API_URL}/jobs/export`, {
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.statusText}`);
+    }
+    
+    // Get the blob
+    const blob = await response.blob();
+    
+    // Extract filename from Content-Disposition header or use default
+    const contentDisposition = response.headers.get('Content-Disposition');
+    let filename = 'freelance_jobs.csv';
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+      if (filenameMatch) {
+        filename = filenameMatch[1];
+      }
+    }
+    
+    // Create download link
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Cleanup
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    
+    console.log('✓ CSV export successful:', filename);
+  } catch (error) {
+    console.error('Error exporting CSV:', error);
+    alert('Failed to export CSV: ' + error.message);
+  }
+}
+
+// Apply date filter
+function applyDateFilter() {
+  const select = document.getElementById('dateFilter');
+  const value = select.value;
+  
+  // Update global filter variable
+  dateFilterDays = value === '' ? null : parseInt(value);
+  
+  console.log('Date filter changed to:', dateFilterDays === null ? 'No filter' : `${dateFilterDays} days`);
+  
+  // Reload jobs with new filter
+  loadJobs();
 }
