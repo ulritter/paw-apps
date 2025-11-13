@@ -233,29 +233,126 @@ Production uses Let's Encrypt for SSL:
 
 ## 🗄️ Database
 
+### Database Name
+
+**Important**: The actual database name is `freelance`, not `pawsystems` as mentioned in some configuration examples.
+
 ### Schema
 
-**users table**:
+#### 1. users
+User accounts for authentication and session management.
+
 ```sql
-- id (primary key)
-- email (unique)
-- session_validity_minutes (default: 60)
-- last_login
-- created_at
+CREATE TABLE users (
+    id                       SERIAL PRIMARY KEY,
+    email                    TEXT NOT NULL UNIQUE,
+    session_validity_minutes INTEGER,
+    created_at               TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
+    last_login               TIMESTAMP WITHOUT TIME ZONE,
+    CONSTRAINT email_domain_check CHECK (email LIKE '%@paw-systems.com')
+);
 ```
 
-**jobs table** (crawler):
+**Columns**:
+- `id`: Auto-incrementing primary key
+- `email`: Unique email address (must be @paw-systems.com domain)
+- `session_validity_minutes`: Custom session timeout per user
+- `created_at`: Account creation timestamp
+- `last_login`: Last successful login timestamp
+
+**Constraints**:
+- Email must end with `@paw-systems.com`
+
+#### 2. jobs
+Job listings scraped from various sources.
+
 ```sql
-- id
-- title
-- company
-- location
-- url
-- provider
-- query
-- processed
-- created_at
+CREATE TABLE jobs (
+    id          SERIAL PRIMARY KEY,
+    source      TEXT,
+    title       TEXT,
+    link        TEXT UNIQUE,
+    company     TEXT,
+    location    TEXT,
+    posted      TEXT,
+    posted_date TIMESTAMP WITHOUT TIME ZONE,
+    created_at  TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
+    processed   BOOLEAN DEFAULT FALSE
+);
+
+CREATE INDEX idx_jobs_posted_date ON jobs (posted_date DESC);
+CREATE UNIQUE INDEX idx_jobs_unique_title_company_source
+    ON jobs (LOWER(title), LOWER(COALESCE(company, '')), source)
+    WHERE title IS NOT NULL;
 ```
+
+**Columns**:
+- `id`: Auto-incrementing primary key
+- `source`: Job board source (e.g., "Indeed", "LinkedIn")
+- `title`: Job title
+- `link`: Unique URL to the job posting
+- `company`: Company name
+- `location`: Job location
+- `posted`: Posted date as text (from source)
+- `posted_date`: Parsed timestamp for sorting
+- `created_at`: When job was scraped
+- `processed`: Whether job has been reviewed/processed
+
+**Indexes**:
+- Unique constraint on `link` to prevent duplicates
+- Unique constraint on `(title, company, source)` combination (case-insensitive)
+- Performance index on `posted_date` for chronological queries
+
+#### 3. settings
+Application configuration key-value store.
+
+```sql
+CREATE TABLE settings (
+    key         TEXT PRIMARY KEY,
+    value       TEXT NOT NULL,
+    description TEXT,
+    updated_at  TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
+);
+```
+
+**Columns**:
+- `key`: Setting identifier (primary key)
+- `value`: Setting value (stored as text)
+- `description`: Human-readable description of the setting
+- `updated_at`: Last modification timestamp
+
+#### 4. auth_codes
+Temporary authentication codes for email-based login.
+
+```sql
+CREATE TABLE auth_codes (
+    id         SERIAL PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    code       TEXT NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
+    expires_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    used       BOOLEAN DEFAULT FALSE
+);
+
+CREATE INDEX idx_auth_codes_user_id ON auth_codes (user_id);
+CREATE INDEX idx_auth_codes_code ON auth_codes (code);
+```
+
+**Columns**:
+- `id`: Auto-incrementing primary key
+- `user_id`: Foreign key to users table
+- `code`: 6-digit authentication code
+- `created_at`: When code was generated
+- `expires_at`: When code expires (typically 10 minutes)
+- `used`: Whether code has been used
+
+**Relationships**:
+- Foreign key to `users(id)` with CASCADE delete
+- When a user is deleted, all their auth codes are removed
+
+**Indexes**:
+- Index on `user_id` for fast user lookup
+- Index on `code` for fast code validation
 
 ### User Management
 
