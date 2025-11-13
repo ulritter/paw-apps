@@ -85,6 +85,9 @@ backup_*.sql
 *.tar.gz
 *.backup
 
+# Data exports
+jobs_export.csv
+
 # Temporary files
 tmp/
 temp/
