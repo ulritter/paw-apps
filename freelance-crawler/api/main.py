@@ -65,7 +65,7 @@ def scheduled_crawler_job():
         logger.info("Starting scheduled crawler job...")
         # Run crawler using docker exec (use existing container)
         result = subprocess.run(
-            ['docker', 'exec', 'selenium_crawler', 'python', '/app/run_crawlers.py'],
+            ['docker', 'exec', 'paw_selenium_crawler', 'python', '/app/run_crawlers.py'],
             capture_output=True,
             text=True,
             timeout=3600  # 1 hour timeout
@@ -612,11 +612,11 @@ def run_crawler():
             "logs": []
         }
         # Execute crawler in the crawler container
-        print("📡 Executing: docker exec selenium_crawler python /app/run_crawlers.py")
+        print("📡 Executing: docker exec paw_selenium_crawler python /app/run_crawlers.py")
         
         # Run with real-time output streaming
         process = subprocess.Popen(
-            ["docker", "exec", "selenium_crawler", "python", "/app/run_crawlers.py"],
+            ["docker", "exec", "paw_selenium_crawler", "python", "/app/run_crawlers.py"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
