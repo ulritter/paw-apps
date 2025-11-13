@@ -167,7 +167,7 @@ export default function AIPdfToExcel() {
   };
 
   const handleHome = () => {
-    window.location.href = '/';
+    window.location.href = window.location.protocol + '//' + window.location.host + '/';
   };
 
   return (
