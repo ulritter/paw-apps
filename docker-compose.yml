@@ -97,7 +97,7 @@ services:
       - DISPLAY=:99
       - DEBUG_MODE=${DEBUG_MODE:-false}
     shm_size: 2gb
-    command: ["/bin/sh", "-c", "rm -f /tmp/.X99-lock && Xvfb :99 -screen 0 1920x1080x24 & wait_for_db.sh && chmod +x /app/init_config.sh && /app/init_config.sh && tail -f /dev/null"]
+    command: ["/bin/sh", "-c", "rm -f /tmp/.X99-lock && Xvfb :99 -screen 0 1920x1080x24 & wait_for_db.sh && tail -f /dev/null"]
 
   # Landing Page & Frontend Gateway
   frontend:
