@@ -296,10 +296,15 @@ CREATE UNIQUE INDEX idx_jobs_unique_title_company_source
 - `link`: Unique URL to the job posting
 - `company`: Company name
 - `location`: Job location
-- `posted`: Posted date as text (from source)
-- `posted_date`: Parsed timestamp for sorting
-- `created_at`: When job was scraped
+- `posted`: Posted date as text from source (may be date or time)
+- `posted_date`: Parsed timestamp for sorting (shown as "Veröffentlicht" in UI)
+- `created_at`: When job was scraped by crawler (shown as "Erfasst am" in UI)
 - `processed`: Whether job has been reviewed/processed
+
+**Date Display**:
+- Frontend displays both `posted_date` and `created_at` in DD.MM.YYYY format
+- "Veröffentlicht" column shows when job was originally posted on job board
+- "Erfasst am" column shows when crawler captured the job
 
 **Indexes**:
 - Unique constraint on `link` to prevent duplicates
@@ -395,6 +400,8 @@ All protected pages include:
 - **Selenium-based automation** - Headless browser for JavaScript-heavy sites
 - **Job filtering and processing** - Mark jobs as processed, filter by source
 - **Date-based filtering** - Filter jobs by scrape date (last 7/14/30 days)
+- **Dual date tracking** - "Veröffentlicht" (posted date) and "Erfasst am" (scraped date) columns
+- **Consistent date formatting** - All dates displayed in DD.MM.YYYY format
 - **CSV Export** - Download entire jobs database as CSV file
 - **Configuration management** - JSON-based crawler configuration with wizard
 - **Document upload/management** - Store and manage application documents

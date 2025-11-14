@@ -5,6 +5,35 @@ let groupingMode = 'provider-query'; // or 'query-provider'
 let displayMode = 'table'; // or 'cards'
 let dateFilterDays = null; // null = no filter, 7/14/30 = days
 
+// Format posted date to always show date only (DD.MM.YYYY)
+function formatPostedDate(job) {
+  // If posted_date is available, use it
+  if (job.posted_date) {
+    const date = new Date(job.posted_date);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
+  }
+  
+  // Otherwise, check if posted is already a date format (DD.MM.YYYY)
+  if (job.posted && /^\d{2}\.\d{2}\.\d{4}$/.test(job.posted)) {
+    return job.posted;
+  }
+  
+  // If it's a time (HH:MM), use today's date
+  if (job.posted && /^\d{2}:\d{2}$/.test(job.posted)) {
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    return `${day}.${month}.${year}`;
+  }
+  
+  // Fallback to original posted value
+  return job.posted || 'N/A';
+}
+
 // Check authentication on page load
 async function checkAuth() {
   try {
@@ -195,7 +224,7 @@ function displayGroupedByProviderThenQuery(jobs, container) {
             <div style="flex: 1;">
               <h3><a href="${job.link}" target="_blank">${job.title}</a></h3>
               <p><b>${job.company || "Unbekannt"}</b> – ${job.location || "n/a"}</p>
-              <small>${job.posted}</small>
+              <small>${formatPostedDate(job)}</small>
             </div>
           </div>
         `;
@@ -261,7 +290,7 @@ function displayGroupedByQueryThenProvider(jobs, container) {
             <div style="flex: 1;">
               <h3><a href="${job.link}" target="_blank">${job.title}</a></h3>
               <p><b>${job.company || "Unbekannt"}</b> – ${job.location || "n/a"}</p>
-              <small>${job.posted}</small>
+              <small>${formatPostedDate(job)}</small>
             </div>
           </div>
         `;
@@ -487,6 +516,17 @@ function compareValues(a, b, column, ascending) {
       
       return ascending ? aVal - bVal : bVal - aVal;
       
+    case 'created_at': // Created at timestamp
+      aVal = a.created_at ? new Date(a.created_at) : null;
+      bVal = b.created_at ? new Date(b.created_at) : null;
+      
+      // Handle null dates (put them at the end)
+      if (!aVal && !bVal) return 0;
+      if (!aVal) return 1;
+      if (!bVal) return -1;
+      
+      return ascending ? aVal - bVal : bVal - aVal;
+      
     case 'title':
     case 'company':
     case 'location':
@@ -559,7 +599,8 @@ function sortTable(tableId, column) {
       </td>
       <td style="padding: 0.75rem; vertical-align: top; color: #4a5568;">${job.company || 'N/A'}</td>
       <td style="padding: 0.75rem; vertical-align: top; color: #4a5568;">${job.location || 'N/A'}</td>
-      <td style="padding: 0.75rem; vertical-align: top; color: #718096; font-size: 0.85rem;">${job.posted}</td>
+      <td style="padding: 0.75rem; vertical-align: top; color: #718096; font-size: 0.85rem;">${formatPostedDate(job)}</td>
+      <td style="padding: 0.75rem; vertical-align: top; color: #718096; font-size: 0.85rem;">${job.created_at ? new Date(job.created_at).toLocaleDateString('de-DE') : 'N/A'}</td>
     `;
     
     tbody.appendChild(row);
@@ -636,6 +677,9 @@ function createJobTable(jobs, container, marginLeft = '0') {
       <th data-column="posted" onclick="sortTable('${tableId}', 'posted')" style="padding: 0.75rem; text-align: left; font-weight: 600; color: #2d3748; font-size: 0.85rem; cursor: pointer; user-select: none;">
         Veröffentlicht<span class="sort-indicator" style="opacity: 0.3;"> ▲</span>
       </th>
+      <th data-column="created_at" onclick="sortTable('${tableId}', 'created_at')" style="padding: 0.75rem; text-align: left; font-weight: 600; color: #2d3748; font-size: 0.85rem; cursor: pointer; user-select: none;">
+        Erfasst am<span class="sort-indicator" style="opacity: 0.3;"> ▲</span>
+      </th>
     </tr>
   `;
   table.appendChild(thead);
@@ -672,7 +716,8 @@ function createJobTable(jobs, container, marginLeft = '0') {
       </td>
       <td style="padding: 0.75rem; vertical-align: top; color: #4a5568;">${job.company || 'N/A'}</td>
       <td style="padding: 0.75rem; vertical-align: top; color: #4a5568;">${job.location || 'N/A'}</td>
-      <td style="padding: 0.75rem; vertical-align: top; color: #718096; font-size: 0.85rem;">${job.posted}</td>
+      <td style="padding: 0.75rem; vertical-align: top; color: #718096; font-size: 0.85rem;">${formatPostedDate(job)}</td>
+      <td style="padding: 0.75rem; vertical-align: top; color: #718096; font-size: 0.85rem;">${job.created_at ? new Date(job.created_at).toLocaleDateString('de-DE') : 'N/A'}</td>
     `;
     
     tbody.appendChild(row);
