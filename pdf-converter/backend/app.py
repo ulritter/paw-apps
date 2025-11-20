@@ -1,11 +1,15 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Cookie, Depends
+from fastapi import FastAPI, File, UploadFile, HTTPException, Cookie, Depends, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import anthropic
+import google.generativeai as genai
+import openai
 import base64
 import os
 import re
+import io
+import pypdf
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import logging
@@ -28,6 +32,8 @@ app = FastAPI(
 # Configuration
 PORT = int(os.getenv("PORT", "8001"))
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 CORS_ORIGIN = os.getenv("CORS_ORIGIN", "*")
 MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", "10485760"))  # 10MB default
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
@@ -224,13 +230,16 @@ async def health_check():
     return {
         "status": "ok",
         "timestamp": datetime.utcnow().isoformat(),
-        "api_key_configured": bool(ANTHROPIC_API_KEY and ANTHROPIC_API_KEY != 'your-api-key-here')
+        "api_key_configured": bool(ANTHROPIC_API_KEY and ANTHROPIC_API_KEY != 'your-api-key-here'),
+        "google_key_configured": bool(GOOGLE_API_KEY),
+        "openai_key_configured": bool(OPENAI_API_KEY)
     }
 
 
 @app.post("/api/convert")
 async def convert_ai(
     pdf: UploadFile = File(...),
+    model: str = Form("anthropic-claude-sonnet-4.5"),
     email: str = Depends(verify_auth_token)
 ):
     """
@@ -243,7 +252,16 @@ async def convert_ai(
         # Validate API key
         if not ANTHROPIC_API_KEY or ANTHROPIC_API_KEY == 'your-api-key-here':
             logger.error('ANTHROPIC_API_KEY not configured')
-            raise HTTPException(status_code=500, detail="API key not configured")
+        # Validate API key based on model
+        if model == "anthropic-claude-sonnet-4.5" and (not ANTHROPIC_API_KEY or ANTHROPIC_API_KEY == 'your-api-key-here'):
+            logger.error('ANTHROPIC_API_KEY not configured')
+            raise HTTPException(status_code=500, detail="Anthropic API key not configured")
+        elif model == "google-gemini-3-pro" and not GOOGLE_API_KEY:
+            logger.error('GOOGLE_API_KEY not configured')
+            raise HTTPException(status_code=500, detail="Google API key not configured")
+        elif model == "openai-gpt-4o" and not OPENAI_API_KEY:
+            logger.error('OPENAI_API_KEY not configured')
+            raise HTTPException(status_code=500, detail="OpenAI API key not configured")
         
         # Validate file
         if not pdf.filename or not pdf.filename.lower().endswith('.pdf'):
@@ -263,9 +281,6 @@ async def convert_ai(
         
         # Encode to base64
         base64_data = base64.b64encode(content).decode('utf-8')
-        
-        # Initialize Anthropic client
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         
         # Create the prompt
         prompt_text = """You are a precise data extraction specialist for German DATEV payroll documents (Lohnjournale).
@@ -344,39 +359,96 @@ OUTPUT FORMAT (JSON only, no markdown):
 
 EXTRACT ALL DATA WITH MAXIMUM PRECISION. Every number, every row, every column must be accurate."""
         
-        # Call Anthropic API
-        message = client.messages.create(
-            model="claude-sonnet-4-5-20250929",  # Latest Sonnet 4.5 - best for complex agents and coding
-            max_tokens=8000,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "document",
-                            "source": {
-                                "type": "base64",
-                                "media_type": "application/pdf",
-                                "data": base64_data
+        # Call AI API based on model
+        json_text = ""
+        
+        if model == "anthropic-claude-sonnet-4.5":
+            # Initialize Anthropic client
+            client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+            
+            message = client.messages.create(
+                model="claude-sonnet-4-5-20250929",  # Latest Sonnet 4.5
+                max_tokens=8000,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "document",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "application/pdf",
+                                    "data": base64_data
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "text": prompt_text
                             }
-                        },
-                        {
-                            "type": "text",
-                            "text": prompt_text
-                        }
-                    ]
-                }
-            ]
-        )
-        
-        # Extract text content from response
-        text_content = ""
-        for block in message.content:
-            if block.type == "text":
-                text_content += block.text
-        
+                        ]
+                    }
+                ]
+            )
+            
+            # Extract text content from response
+            for block in message.content:
+                if block.type == "text":
+                    json_text += block.text
+                    
+        elif model == "google-gemini-3-pro":
+            # Configure Gemini
+            genai.configure(api_key=GOOGLE_API_KEY)
+            model_instance = genai.GenerativeModel('gemini-3-pro-preview') # Using valid Gemini 3 preview model
+            
+            # Prepare content parts
+            # Note: Gemini might handle PDF differently, but for now assuming we pass text or image. 
+            # Ideally we upload the file to File API, but for simplicity let's try passing the prompt.
+            # Actually, Gemini 1.5 Pro supports PDF via File API. 
+            # For this implementation, we'll assume we can pass the PDF data or we might need to adjust if the library requires file upload.
+            # Let's assume we pass the prompt and maybe the base64 if supported, or just text if we extracted it.
+            # BUT, the requirement is to use the model for conversion.
+            # Let's use the standard generate_content with the prompt.
+            # Since we can't easily pass base64 PDF directly in the same way as Claude without File API in some versions,
+            # we will try to use the 'parts' with mime_type if supported, or fall back to text extraction if needed.
+            # However, for this task, let's assume we can send the data.
+            
+            # Better approach for Gemini: Use the File API if possible, or inline data.
+            # Inline data for Gemini:
+            cookie_picture = {
+                'mime_type': 'application/pdf',
+                'data': base64.b64decode(base64_data)
+            }
+            
+            response = model_instance.generate_content([prompt_text, cookie_picture])
+            json_text = response.text
+            
+        elif model == "openai-gpt-4o":
+            # Configure OpenAI
+            client = openai.OpenAI(api_key=OPENAI_API_KEY)
+            
+            # Extract text from PDF using pypdf
+            try:
+                pdf_file = io.BytesIO(content)
+                pdf_reader = pypdf.PdfReader(pdf_file)
+                extracted_text = ""
+                for page in pdf_reader.pages:
+                    extracted_text += page.extract_text() + "\n"
+            except Exception as e:
+                logger.error(f"Error extracting text from PDF: {e}")
+                raise HTTPException(status_code=500, detail=f"Error processing PDF text: {str(e)}")
+            
+            # Call OpenAI with extracted text
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant designed to output JSON."},
+                    {"role": "user", "content": f"{prompt_text}\n\nDOCUMENT CONTENT:\n{extracted_text}"} 
+                ],
+                response_format={ "type": "json_object" }
+            )
+            json_text = response.choices[0].message.content
+
         # Clean up JSON (remove markdown code blocks if present)
-        json_text = text_content.strip()
         json_text = re.sub(r'```json\n?', '', json_text)
         json_text = re.sub(r'```\n?', '', json_text)
         

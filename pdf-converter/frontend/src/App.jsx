@@ -13,6 +13,7 @@ export default function AIPdfToExcel() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [userEmail, setUserEmail] = useState('');
+  const [selectedModel, setSelectedModel] = useState('anthropic-claude-sonnet-4.5');
 
   // Check authentication on mount
   useEffect(() => {
@@ -22,12 +23,12 @@ export default function AIPdfToExcel() {
           credentials: 'include'
         });
         const data = await response.json();
-        
+
         if (!data.authenticated) {
           window.location.href = '/login.html';
           return;
         }
-        
+
         setIsAuthenticated(true);
         setUserEmail(data.email || '');
         setIsCheckingAuth(false);
@@ -36,7 +37,7 @@ export default function AIPdfToExcel() {
         window.location.href = '/login.html';
       }
     };
-    
+
     checkAuth();
   }, []);
 
@@ -52,6 +53,7 @@ export default function AIPdfToExcel() {
   const analyzeWithBackend = async (file) => {
     const formData = new FormData();
     formData.append('pdf', file);
+    formData.append('model', selectedModel);
     const response = await fetch(`${API_URL}/convert`, {
       method: 'POST',
       body: formData
@@ -197,7 +199,7 @@ export default function AIPdfToExcel() {
               ← Home
             </button>
             <img src="/pws-logo.png" alt="People Work Systems" className="h-10 md:h-12 object-contain" />
-            <div 
+            <div
               className="flex items-center gap-3 px-6 py-3 rounded-full"
               style={{
                 background: 'rgba(139, 92, 246, 0.1)',
@@ -255,13 +257,28 @@ export default function AIPdfToExcel() {
           </div>
         </div>
         <div className="bg-white rounded-xl shadow-lg p-8 mb-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">PDF hochladen</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-800">PDF hochladen</h2>
+            <div className="flex items-center gap-2">
+              <label htmlFor="model-select" className="text-sm font-medium text-gray-700">Modell:</label>
+              <select
+                id="model-select"
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="block w-auto min-w-[250px] rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                disabled={status === 'processing'}
+              >
+                <option value="anthropic-claude-sonnet-4.5">Anthropic Claude Sonnet 4.5</option>
+                <option value="google-gemini-3-pro">Google Gemini 3 Pro</option>
+                <option value="openai-gpt-4o">OpenAI GPT-4o</option>
+              </select>
+            </div>
+          </div>
           <div
-            className={`border-2 border-dashed rounded-lg p-12 text-center transition-all ${
-              isDragOver
-                ? 'border-indigo-600 bg-indigo-100'
-                : 'border-indigo-300 bg-gradient-to-br from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100'
-            }`}
+            className={`border-2 border-dashed rounded-lg p-12 text-center transition-all ${isDragOver
+              ? 'border-indigo-600 bg-indigo-100'
+              : 'border-indigo-300 bg-gradient-to-br from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100'
+              }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
