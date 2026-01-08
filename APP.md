@@ -8,6 +8,7 @@ PAW Systems is a secure, multi-service web application platform consisting of:
 2. **Freelance Crawler** - Automated job scraping and management system
 3. **PDF Converter** - AI-powered PDF to Excel conversion using Claude AI
 4. **Team Todo List** - Shared team task management with priorities and categories
+5. **User Management** - Administrative interface for managing users, roles, and permissions (Admin only)
 
 All services require authentication and are designed for internal company use.
 
@@ -119,9 +120,11 @@ location / { ... }
 | `/crawler/` | crawler-web | Job crawler UI (protected) |
 | `/converter/` | converter-web | PDF converter UI (protected) |
 | `/todos/` | todo-web | Team todo list UI (protected) |
+| `/user-management/` | user-management-web | User management UI (admin only) |
 | `/api/crawler/*` | crawler-api | Crawler API endpoints |
 | `/api/converter/*` | converter-api | Converter API endpoints |
 | `/api/todos/*` | todo-api | Todo list API endpoints |
+| `/api/user-management/*` | user-management-api | User management API endpoints (admin only) |
 
 ## 📁 Project Structure
 
@@ -261,28 +264,42 @@ Production uses Let's Encrypt for SSL:
 ### Schema
 
 #### 1. users
-User accounts for authentication and session management.
+User accounts for authentication, session management, and role-based access control.
 
 ```sql
 CREATE TABLE users (
     id                       SERIAL PRIMARY KEY,
     email                    TEXT NOT NULL UNIQUE,
+    first_name               TEXT,
+    last_name                TEXT,
     session_validity_minutes INTEGER,
+    is_admin                 BOOLEAN DEFAULT FALSE,
+    is_super_admin           BOOLEAN DEFAULT FALSE,
     created_at               TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
     last_login               TIMESTAMP WITHOUT TIME ZONE,
     CONSTRAINT email_domain_check CHECK (email LIKE '%@paw-systems.com')
 );
+
+CREATE INDEX idx_users_is_admin ON users (is_admin);
+CREATE INDEX idx_users_is_super_admin ON users (is_super_admin);
 ```
 
 **Columns**:
 - `id`: Auto-incrementing primary key
 - `email`: Unique email address (must be @paw-systems.com domain)
+- `first_name`: User's first name (optional)
+- `last_name`: User's last name (optional)
 - `session_validity_minutes`: Custom session timeout per user
+- `is_admin`: Whether user has admin access to User Management app
+- `is_super_admin`: Whether user can grant/revoke admin rights (only uwe.ritter@paw-systems.com)
 - `created_at`: Account creation timestamp
 - `last_login`: Last successful login timestamp
 
 **Constraints**:
 - Email must end with `@paw-systems.com`
+
+**Indexes**:
+- Performance indexes on `is_admin` and `is_super_admin` for access control checks
 
 #### 2. jobs
 Job listings scraped from various sources.
@@ -421,7 +438,12 @@ CREATE INDEX idx_todos_assigned_to ON todos (assigned_to);
 - `created_by`: Email of user who created the todo
 - `completed_at`: When todo was marked complete
 - `completed_by`: Email of user who completed it
-- `assigned_to`: Email of user assigned to this todo (from users table)
+- `assigned_to`: Email of user assigned to this todo (links to users.email)
+
+**Display Names**:
+- API joins with `users` table to construct display names: `first_name + last_name` (or email as fallback)
+- Frontend displays `assigned_to_name` field instead of raw email addresses
+- Applies to: todo items, assignment dropdown, and filter dropdown
 
 **Indexes**:
 - Performance indexes on `completed`, `priority`, `due_date`, `created_at`, `category`, and `assigned_to`
@@ -491,16 +513,33 @@ All protected pages include:
 ### Team Todo List
 - **Shared team todolist** - All authenticated users see and manage the same todos
 - **Task assignment** - Assign todos to team members from user database dropdown
+- **User-friendly display** - Shows user names (first + last name) instead of email addresses, with email as fallback
 - **Priority levels** - Low, medium, and high priorities with color coding
 - **Categories/tags** - Organize todos with custom categories
 - **Due dates** - Set deadlines with visual indicators for overdue items
 - **Rich descriptions** - Add detailed notes and context to each todo
-- **User tracking** - Track who created, assigned, and completed each todo
+- **User tracking** - Track who created, assigned, and completed each todo (displayed by name)
 - **Real-time statistics** - Dashboard showing completion rate and priority breakdown
-- **Advanced filtering** - Filter by completion status, priority, category, assigned user, or search by title
+- **Advanced filtering** - Filter by completion status, priority, category, assigned user (by name), or search by title
 - **Sort options** - Sort by created date, due date, or priority
 - **Responsive design** - Mobile-friendly interface with purple gradient theme
 - **Authentication required** - Secure access control with JWT tokens
+
+### User Management (Admin Only)
+- **Role-based access control** - Admin and super admin roles with different permissions
+- **User CRUD operations** - Create, read, update, and delete users (admins)
+- **Admin rights management** - Grant/revoke admin access (super admin only)
+- **Super admin protection** - Only uwe.ritter@paw-systems.com can manage admin rights
+- **Safety checks** - Prevents deleting or demoting the last administrator
+- **User profiles** - First name, last name, email, session validity configuration
+- **Activity tracking** - View last login times and user statistics
+- **Search and filter** - Find users by email, name, or admin status
+- **Visual role indicators** - Color-coded badges for super admin, admin, and regular users
+- **Real-time statistics** - Dashboard showing total users, admins, and recent activity
+- **Conditional visibility** - User Management card only visible to admin users on landing page
+- **Session management** - Configure custom session validity per user
+- **German UI** - Full German language interface matching other apps
+- **Responsive design** - Mobile-friendly with purple gradient theme
 
 ## 🐛 Troubleshooting
 
@@ -566,6 +605,14 @@ When working with this application:
 16. **Todo API uses regex location** - Nginx location is `~ ^/api/todos(/.*)?$` to preserve full path
 17. **Todo route order critical** - `/api/todos/users` endpoint must be defined BEFORE `/api/todos/{todo_id}` in FastAPI
 18. **Todo assignees from users table** - Assignment dropdown populated from `users` table, not a separate list
+19. **Todo displays user names** - API joins with users table to show names instead of emails (email as fallback)
+20. **User Management is admin-only** - Card hidden on landing page for non-admin users
+21. **Super admin is unique** - Only uwe.ritter@paw-systems.com can grant/revoke admin rights
+22. **Admin safety checks** - System prevents deleting or demoting the last administrator
+23. **User Management API uses path stripping** - Nginx strips `/api/user-management/` prefix
+24. **Auth endpoint includes admin status** - `/api/crawler/auth/check` returns `is_admin` flag
+25. **Admin check uses database** - Auth endpoint queries users table for `is_admin` on every check
+26. **Todo API returns display_name** - All endpoints join users table to provide `assigned_to_name` field
 
 ### Production Checklist
 
@@ -634,6 +681,6 @@ For issues or questions, refer to:
 
 ---
 
-**Last Updated**: November 2025  
-**Version**: 1.0  
+**Last Updated**: January 2026
+**Version**: 1.1
 **Maintained by**: PAW Systems Team

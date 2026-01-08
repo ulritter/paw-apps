@@ -497,25 +497,41 @@ async def check_auth(response: Response, auth_token: str | None = Cookie(None)):
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
-    
+
     if not auth_token:
         return {"authenticated": False}
-    
+
     try:
         payload = jwt.decode(auth_token, SECRET_KEY, algorithms=[ALGORITHM])
         email = payload.get("sub")
         exp = payload.get("exp")
-        
+
         if email and exp:
             expires_at = datetime.utcfromtimestamp(exp)
+
+            # Get admin status from database
+            is_admin = False
+            try:
+                conn = get_db_connection()
+                cur = conn.cursor()
+                cur.execute("SELECT is_admin FROM users WHERE email = %s", (email,))
+                result = cur.fetchone()
+                if result:
+                    is_admin = result[0]
+                cur.close()
+                conn.close()
+            except Exception as e:
+                logger.error(f"Error checking admin status: {e}")
+
             return {
                 "authenticated": True,
                 "email": email,
-                "expires_at": expires_at.isoformat()
+                "expires_at": expires_at.isoformat(),
+                "is_admin": is_admin
             }
     except JWTError:
         pass
-    
+
     return {"authenticated": False}
 
 @app.post("/auth/logout")

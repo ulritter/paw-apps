@@ -99,6 +99,27 @@ services:
       db:
         condition: service_healthy
 
+  # User Management API
+  user-management-api:
+    build:
+      context: ./user-management/backend
+      dockerfile: Dockerfile
+    container_name: paw_user_management_api
+    env_file:
+      - .env
+    environment:
+      - ENV=production
+      - PORT=8003
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+    expose:
+      - "8003"
+    networks:
+      - paw-network
+    depends_on:
+      db:
+        condition: service_healthy
+
   # Crawler Service (Selenium)
   crawler:
     build: ./freelance-crawler
@@ -170,6 +191,19 @@ services:
     networks:
       - paw-network
 
+  # User Management Web Frontend (React)
+  user-management-web:
+    build:
+      context: ./user-management/frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=/api/user-management
+    container_name: paw_user_management_web
+    expose:
+      - "80"
+    networks:
+      - paw-network
+
   # Nginx Reverse Proxy
   # Note: Virtualmin handles SSL and proxies to this nginx on port 8081
   nginx:
@@ -179,6 +213,7 @@ services:
       - crawler-api
       - converter-api
       - todo-api
+      - user-management-api
       - frontend
     ports:
       - "8081:80"

@@ -76,6 +76,7 @@ class TodoResponse(BaseModel):
     completed_at: Optional[datetime]
     completed_by: Optional[str]
     assigned_to: Optional[str]
+    assigned_to_name: Optional[str]
 
 class TodoStats(BaseModel):
     total: int
@@ -142,31 +143,45 @@ async def get_todos(
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        query = "SELECT * FROM todos WHERE 1=1"
+        query = """
+            SELECT t.*,
+                   CASE
+                       WHEN u.first_name IS NOT NULL AND u.last_name IS NOT NULL
+                       THEN CONCAT(u.first_name, ' ', u.last_name)
+                       WHEN u.first_name IS NOT NULL
+                       THEN u.first_name
+                       WHEN u.last_name IS NOT NULL
+                       THEN u.last_name
+                       ELSE t.assigned_to
+                   END AS assigned_to_name
+            FROM todos t
+            LEFT JOIN users u ON t.assigned_to = u.email
+            WHERE 1=1
+        """
         params = []
 
         if completed is not None:
-            query += " AND completed = %s"
+            query += " AND t.completed = %s"
             params.append(completed)
 
         if priority:
-            query += " AND priority = %s"
+            query += " AND t.priority = %s"
             params.append(priority)
 
         if category:
-            query += " AND category = %s"
+            query += " AND t.category = %s"
             params.append(category)
 
         if assigned_to:
-            query += " AND assigned_to = %s"
+            query += " AND t.assigned_to = %s"
             params.append(assigned_to)
 
         if search:
-            query += " AND (title ILIKE %s OR description ILIKE %s)"
+            query += " AND (t.title ILIKE %s OR t.description ILIKE %s)"
             search_pattern = f"%{search}%"
             params.extend([search_pattern, search_pattern])
 
-        query += " ORDER BY completed ASC, priority DESC, due_date ASC NULLS LAST, created_at DESC"
+        query += " ORDER BY t.completed ASC, t.priority DESC, t.due_date ASC NULLS LAST, t.created_at DESC"
 
         cur.execute(query, params)
         todos = cur.fetchall()
@@ -189,7 +204,20 @@ async def get_users(
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        cur.execute("SELECT id, email FROM users ORDER BY email")
+        cur.execute("""
+            SELECT id, email, first_name, last_name,
+                   CASE
+                       WHEN first_name IS NOT NULL AND last_name IS NOT NULL
+                       THEN CONCAT(first_name, ' ', last_name)
+                       WHEN first_name IS NOT NULL
+                       THEN first_name
+                       WHEN last_name IS NOT NULL
+                       THEN last_name
+                       ELSE email
+                   END AS display_name
+            FROM users
+            ORDER BY display_name
+        """)
         users = cur.fetchall()
 
         cur.close()
@@ -211,7 +239,21 @@ async def get_todo(
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        cur.execute("SELECT * FROM todos WHERE id = %s", (todo_id,))
+        cur.execute("""
+            SELECT t.*,
+                   CASE
+                       WHEN u.first_name IS NOT NULL AND u.last_name IS NOT NULL
+                       THEN CONCAT(u.first_name, ' ', u.last_name)
+                       WHEN u.first_name IS NOT NULL
+                       THEN u.first_name
+                       WHEN u.last_name IS NOT NULL
+                       THEN u.last_name
+                       ELSE t.assigned_to
+                   END AS assigned_to_name
+            FROM todos t
+            LEFT JOIN users u ON t.assigned_to = u.email
+            WHERE t.id = %s
+        """, (todo_id,))
         todo = cur.fetchone()
 
         cur.close()
@@ -245,13 +287,32 @@ async def create_todo(
         """, (todo.title, todo.description, todo.priority, todo.category, todo.due_date, email, todo.assigned_to))
 
         new_todo = cur.fetchone()
+        todo_id = new_todo['id']
+
+        # Get the todo with the user name
+        cur.execute("""
+            SELECT t.*,
+                   CASE
+                       WHEN u.first_name IS NOT NULL AND u.last_name IS NOT NULL
+                       THEN CONCAT(u.first_name, ' ', u.last_name)
+                       WHEN u.first_name IS NOT NULL
+                       THEN u.first_name
+                       WHEN u.last_name IS NOT NULL
+                       THEN u.last_name
+                       ELSE t.assigned_to
+                   END AS assigned_to_name
+            FROM todos t
+            LEFT JOIN users u ON t.assigned_to = u.email
+            WHERE t.id = %s
+        """, (todo_id,))
+        new_todo_with_name = cur.fetchone()
 
         conn.commit()
         cur.close()
         conn.close()
 
-        logger.info(f"Todo created by {email}: {new_todo['id']}")
-        return new_todo
+        logger.info(f"Todo created by {email}: {todo_id}")
+        return new_todo_with_name
     except Exception as e:
         logger.error(f"Error creating todo: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create todo: {str(e)}")
@@ -310,12 +371,30 @@ async def update_todo(
         cur.execute(query, params)
         updated_todo = cur.fetchone()
 
+        # Get the todo with the user name
+        cur.execute("""
+            SELECT t.*,
+                   CASE
+                       WHEN u.first_name IS NOT NULL AND u.last_name IS NOT NULL
+                       THEN CONCAT(u.first_name, ' ', u.last_name)
+                       WHEN u.first_name IS NOT NULL
+                       THEN u.first_name
+                       WHEN u.last_name IS NOT NULL
+                       THEN u.last_name
+                       ELSE t.assigned_to
+                   END AS assigned_to_name
+            FROM todos t
+            LEFT JOIN users u ON t.assigned_to = u.email
+            WHERE t.id = %s
+        """, (todo_id,))
+        updated_todo_with_name = cur.fetchone()
+
         conn.commit()
         cur.close()
         conn.close()
 
         logger.info(f"Todo updated by {email}: {todo_id}")
-        return updated_todo
+        return updated_todo_with_name
     except HTTPException:
         raise
     except Exception as e:
@@ -360,12 +439,30 @@ async def toggle_complete(
 
         updated_todo = cur.fetchone()
 
+        # Get the todo with the user name
+        cur.execute("""
+            SELECT t.*,
+                   CASE
+                       WHEN u.first_name IS NOT NULL AND u.last_name IS NOT NULL
+                       THEN CONCAT(u.first_name, ' ', u.last_name)
+                       WHEN u.first_name IS NOT NULL
+                       THEN u.first_name
+                       WHEN u.last_name IS NOT NULL
+                       THEN u.last_name
+                       ELSE t.assigned_to
+                   END AS assigned_to_name
+            FROM todos t
+            LEFT JOIN users u ON t.assigned_to = u.email
+            WHERE t.id = %s
+        """, (todo_id,))
+        updated_todo_with_name = cur.fetchone()
+
         conn.commit()
         cur.close()
         conn.close()
 
         logger.info(f"Todo {todo_id} marked as {'completed' if new_status else 'active'} by {email}")
-        return updated_todo
+        return updated_todo_with_name
     except HTTPException:
         raise
     except Exception as e:

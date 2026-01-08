@@ -134,6 +134,10 @@
             background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
         }
 
+        .app-card:nth-child(4) .app-icon {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
         .app-title {
             font-size: 1.8rem;
             font-weight: 700;
@@ -273,6 +277,22 @@
                 </ul>
                 <button class="app-button">Todo List öffnen →</button>
             </a>
+
+            <!-- User Management (Admin Only) -->
+            <a href="/user-management/" class="app-card" id="userManagementCard" style="display: none;">
+                <div class="app-icon">👥</div>
+                <h2 class="app-title">Benutzerverwaltung</h2>
+                <p class="app-description">
+                    Zentrale Verwaltung aller Benutzer mit Rollen, Berechtigungen und Session-Einstellungen.
+                </p>
+                <ul class="app-features">
+                    <li>Benutzer erstellen und bearbeiten</li>
+                    <li>Admin-Rechte verwalten</li>
+                    <li>Session-Gültigkeit konfigurieren</li>
+                    <li>Aktivitäts-Übersicht und Statistiken</li>
+                </ul>
+                <button class="app-button">Verwaltung öffnen →</button>
+            </a>
         </div>
     </div>
 
@@ -284,22 +304,31 @@
                     credentials: 'include'
                 });
                 const data = await response.json();
-                
+
                 if (!data.authenticated) {
                     // Redirect to login if not authenticated
                     window.location.href = '/login.html';
                     return false;
                 }
-                
+
                 // Update UI with user info
                 const userEmail = data.email;
                 const userEmailElement = document.getElementById('userEmail');
                 const userInfoElement = document.getElementById('userInfo');
-                
+
                 if (userEmailElement && userInfoElement) {
                     userEmailElement.textContent = userEmail;
                     userInfoElement.style.display = 'flex';
                 }
+
+                // Show User Management card if user is admin
+                if (data.is_admin === true) {
+                    const userManagementCard = document.getElementById('userManagementCard');
+                    if (userManagementCard) {
+                        userManagementCard.style.display = 'block';
+                    }
+                }
+
                 return true;
             } catch (error) {
                 console.error('Auth check failed:', error);

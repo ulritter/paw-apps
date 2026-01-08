@@ -92,7 +92,7 @@ export default function TodoItem({ todo, onToggle, onEdit, onDelete }) {
           {todo.assigned_to && (
             <span className="assigned-to">
               <User size={14} />
-              Zugewiesen: {todo.assigned_to}
+              Zugewiesen: {todo.assigned_to_name || todo.assigned_to}
             </span>
           )}
 

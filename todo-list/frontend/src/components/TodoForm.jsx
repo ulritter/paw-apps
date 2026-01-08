@@ -142,7 +142,7 @@ export default function TodoForm({ todo, users = [], onSave, onCancel }) {
             >
               <option value="">Nicht zugewiesen</option>
               {users.map(user => (
-                <option key={user.id} value={user.email}>{user.email}</option>
+                <option key={user.id} value={user.email}>{user.display_name || user.email}</option>
               ))}
             </select>
           </div>

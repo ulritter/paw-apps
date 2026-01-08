@@ -266,7 +266,7 @@ export default function App() {
             >
               <option value="">Alle Bearbeiter</option>
               {users.map(user => (
-                <option key={user.id} value={user.email}>{user.email}</option>
+                <option key={user.id} value={user.email}>{user.display_name || user.email}</option>
               ))}
             </select>
 
