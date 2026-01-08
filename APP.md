@@ -7,6 +7,7 @@ PAW Systems is a secure, multi-service web application platform consisting of:
 1. **Landing Page** - Protected entry point with service selection
 2. **Freelance Crawler** - Automated job scraping and management system
 3. **PDF Converter** - AI-powered PDF to Excel conversion using Claude AI
+4. **Team Todo List** - Shared team task management with priorities and categories
 
 All services require authentication and are designed for internal company use.
 
@@ -15,33 +16,33 @@ All services require authentication and are designed for internal company use.
 ### Services
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                         Nginx (Reverse Proxy)                │
-│                    Ports: 8080/8443 (dev)                   │
-│                         80/443 (prod)                        │
-└─────────────────────────────────────────────────────────────┘
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-┌───────▼────────┐   ┌────────▼────────┐   ┌───────▼────────┐
-│   Frontend     │   │ Crawler Service │   │Converter Service│
-│  (Landing Page)│   │                 │   │                 │
-└────────────────┘   └─────────────────┘   └────────────────┘
-                              │                     │
-                     ┌────────┴────────┐   ┌────────┴────────┐
-                     │  Crawler API    │   │ Converter API   │
-                     │  (FastAPI)      │   │  (FastAPI)      │
-                     └────────┬────────┘   └─────────────────┘
-                              │
-                     ┌────────▼────────┐
-                     │   PostgreSQL    │
-                     │   (Database)    │
-                     └─────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│                        Nginx (Reverse Proxy)                       │
+│                       Ports: 8080/8443 (dev)                      │
+│                            80/443 (prod)                           │
+└───────────────────────────────────────────────────────────────────┘
+                                │
+        ┌───────────────────────┼──────────────────────┬──────────────┐
+        │                       │                      │              │
+┌───────▼────────┐   ┌──────────▼─────────┐   ┌───────▼────────┐   │
+│   Frontend     │   │  Crawler Service   │   │Converter Service│   │
+│  (Landing Page)│   │                    │   │                 │   │
+└────────────────┘   └────────────────────┘   └─────────────────┘   │
+                              │                       │              │
+                     ┌────────┴────────┐   ┌──────────┴──────┐ ┌────▼──────┐
+                     │  Crawler API    │   │ Converter API   │ │  Todo API │
+                     │  (FastAPI)      │   │  (FastAPI)      │ │ (FastAPI) │
+                     └────────┬────────┘   └─────────────────┘ └─────┬─────┘
+                              │                                       │
+                     ┌────────▼───────────────────────────────────────▼─────┐
+                     │                    PostgreSQL                         │
+                     │                    (Database)                         │
+                     └──────────────────────────────────────────────────────┘
 ```
 
 ### Technology Stack
 
-- **Frontend**: HTML/CSS/JavaScript, React (Converter)
+- **Frontend**: HTML/CSS/JavaScript, React (Converter & Todo List)
 - **Backend**: Python FastAPI
 - **Database**: PostgreSQL
 - **Reverse Proxy**: Nginx
@@ -95,10 +96,12 @@ Routes must be defined in this order for correct matching:
 # 1. API routes FIRST (most specific)
 location /api/crawler/ { ... }
 location /api/converter/ { ... }
+location ~ ^/api/todos(/.*)?$ { ... }
 
 # 2. Frontend routes
 location /crawler/ { ... }
 location /converter { ... }  # No trailing slash for React
+location /todos { ... }  # React app
 
 # 3. Health check
 location /health { ... }
@@ -115,8 +118,10 @@ location / { ... }
 | `/login.html` | frontend | Login page (public) |
 | `/crawler/` | crawler-web | Job crawler UI (protected) |
 | `/converter/` | converter-web | PDF converter UI (protected) |
+| `/todos/` | todo-web | Team todo list UI (protected) |
 | `/api/crawler/*` | crawler-api | Crawler API endpoints |
 | `/api/converter/*` | converter-api | Converter API endpoints |
+| `/api/todos/*` | todo-api | Todo list API endpoints |
 
 ## 📁 Project Structure
 
@@ -139,6 +144,19 @@ paw-apps/
 │   └── frontend/             # React app
 │       └── src/
 │           └── App.jsx       # Main component
+├── todo-list/
+│   ├── backend/               # Todo API (FastAPI)
+│   │   ├── app.py            # CRUD operations, auth
+│   │   ├── Dockerfile
+│   │   └── requirements.txt
+│   ├── frontend/             # React app
+│   │   ├── src/
+│   │   │   ├── App.jsx       # Main component
+│   │   │   └── components/   # TodoList, TodoItem, TodoForm, TodoStats
+│   │   ├── Dockerfile
+│   │   └── package.json
+│   └── migrations/           # Database migrations
+│       └── 001_create_todos_table.sql
 ├── nginx/
 │   ├── nginx.conf            # Production config (SSL)
 │   └── nginx-dev.conf        # Development config (HTTP)
@@ -362,6 +380,53 @@ CREATE INDEX idx_auth_codes_code ON auth_codes (code);
 - Index on `user_id` for fast user lookup
 - Index on `code` for fast code validation
 
+#### 5. todos
+Team todo list items with priorities, categories, and due dates.
+
+```sql
+CREATE TABLE todos (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    completed BOOLEAN DEFAULT FALSE,
+    priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
+    category TEXT,
+    due_date TIMESTAMP WITHOUT TIME ZONE,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
+    created_by TEXT,
+    completed_at TIMESTAMP WITHOUT TIME ZONE,
+    completed_by TEXT
+);
+
+CREATE INDEX idx_todos_completed ON todos (completed);
+CREATE INDEX idx_todos_priority ON todos (priority);
+CREATE INDEX idx_todos_due_date ON todos (due_date);
+CREATE INDEX idx_todos_created_at ON todos (created_at DESC);
+CREATE INDEX idx_todos_category ON todos (category);
+```
+
+**Columns**:
+- `id`: Auto-incrementing primary key
+- `title`: Todo title/summary (required)
+- `description`: Detailed description (optional)
+- `completed`: Whether todo is completed
+- `priority`: Priority level (low/medium/high)
+- `category`: Custom category/tag for organization
+- `due_date`: Optional deadline
+- `created_at`: When todo was created
+- `updated_at`: Last modification timestamp
+- `created_by`: Email of user who created the todo
+- `completed_at`: When todo was marked complete
+- `completed_by`: Email of user who completed it
+
+**Indexes**:
+- Performance indexes on `completed`, `priority`, `due_date`, `created_at`, and `category`
+- Enables fast filtering and sorting
+
+**Triggers**:
+- Automatic `updated_at` timestamp update on any modification
+
 ### User Management
 
 Users must be manually added to the database:
@@ -419,6 +484,19 @@ All protected pages include:
 - **Drag-and-drop upload** - Easy file upload interface
 - **Concurrent processing** - 4 workers for simultaneous conversions
 - **Authentication required** - Secure access control
+
+### Team Todo List
+- **Shared team todolist** - All authenticated users see and manage the same todos
+- **Priority levels** - Low, medium, and high priorities with color coding
+- **Categories/tags** - Organize todos with custom categories
+- **Due dates** - Set deadlines with visual indicators for overdue items
+- **Rich descriptions** - Add detailed notes and context to each todo
+- **User tracking** - Track who created and completed each todo
+- **Real-time statistics** - Dashboard showing completion rate and priority breakdown
+- **Filter & search** - Filter by completion status, priority, category, or search by title
+- **Sort options** - Sort by created date, due date, or priority
+- **Responsive design** - Mobile-friendly interface with purple gradient theme
+- **Authentication required** - Secure access control with JWT tokens
 
 ## 🐛 Troubleshooting
 
@@ -480,6 +558,8 @@ When working with this application:
 12. **Date filter uses created_at** - Not posted date, filters by scrape date
 13. **PDF converter uses 4 workers** - Can handle concurrent conversions
 14. **Container names matter** - Crawler API calls `paw_selenium_crawler` not `selenium_crawler`
+15. **Todo list is shared** - All users see and manage the same todos (not per-user)
+16. **Todo API uses regex location** - Nginx location is `~ ^/api/todos(/.*)?$` to preserve full path
 
 ### Production Checklist
 

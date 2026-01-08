@@ -75,6 +75,27 @@ services:
       db:
         condition: service_healthy
 
+  # Todo List API
+  todo-api:
+    build:
+      context: ./todo-list/backend
+      dockerfile: Dockerfile
+    container_name: paw_todo_api
+    env_file:
+      - .env
+    environment:
+      - ENV=production
+      - PORT=8002
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+    expose:
+      - "8002"
+    networks:
+      - paw-network
+    depends_on:
+      db:
+        condition: service_healthy
+
   # Crawler Service (Selenium)
   crawler:
     build: ./freelance-crawler
@@ -133,6 +154,19 @@ services:
     networks:
       - paw-network
 
+  # Todo List Web Frontend (React)
+  todo-web:
+    build:
+      context: ./todo-list/frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=/api/todos
+    container_name: paw_todo_web
+    expose:
+      - "80"
+    networks:
+      - paw-network
+
   # Nginx Reverse Proxy
   nginx:
     build: ./nginx
@@ -140,6 +174,7 @@ services:
     depends_on:
       - crawler-api
       - converter-api
+      - todo-api
       - frontend
     ports:
       - "8080:80"
