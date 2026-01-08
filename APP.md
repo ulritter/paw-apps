@@ -396,7 +396,8 @@ CREATE TABLE todos (
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
     created_by TEXT,
     completed_at TIMESTAMP WITHOUT TIME ZONE,
-    completed_by TEXT
+    completed_by TEXT,
+    assigned_to TEXT
 );
 
 CREATE INDEX idx_todos_completed ON todos (completed);
@@ -404,6 +405,7 @@ CREATE INDEX idx_todos_priority ON todos (priority);
 CREATE INDEX idx_todos_due_date ON todos (due_date);
 CREATE INDEX idx_todos_created_at ON todos (created_at DESC);
 CREATE INDEX idx_todos_category ON todos (category);
+CREATE INDEX idx_todos_assigned_to ON todos (assigned_to);
 ```
 
 **Columns**:
@@ -419,10 +421,11 @@ CREATE INDEX idx_todos_category ON todos (category);
 - `created_by`: Email of user who created the todo
 - `completed_at`: When todo was marked complete
 - `completed_by`: Email of user who completed it
+- `assigned_to`: Email of user assigned to this todo (from users table)
 
 **Indexes**:
-- Performance indexes on `completed`, `priority`, `due_date`, `created_at`, and `category`
-- Enables fast filtering and sorting
+- Performance indexes on `completed`, `priority`, `due_date`, `created_at`, `category`, and `assigned_to`
+- Enables fast filtering and sorting by assignee
 
 **Triggers**:
 - Automatic `updated_at` timestamp update on any modification
@@ -487,13 +490,14 @@ All protected pages include:
 
 ### Team Todo List
 - **Shared team todolist** - All authenticated users see and manage the same todos
+- **Task assignment** - Assign todos to team members from user database dropdown
 - **Priority levels** - Low, medium, and high priorities with color coding
 - **Categories/tags** - Organize todos with custom categories
 - **Due dates** - Set deadlines with visual indicators for overdue items
 - **Rich descriptions** - Add detailed notes and context to each todo
-- **User tracking** - Track who created and completed each todo
+- **User tracking** - Track who created, assigned, and completed each todo
 - **Real-time statistics** - Dashboard showing completion rate and priority breakdown
-- **Filter & search** - Filter by completion status, priority, category, or search by title
+- **Advanced filtering** - Filter by completion status, priority, category, assigned user, or search by title
 - **Sort options** - Sort by created date, due date, or priority
 - **Responsive design** - Mobile-friendly interface with purple gradient theme
 - **Authentication required** - Secure access control with JWT tokens
@@ -560,6 +564,8 @@ When working with this application:
 14. **Container names matter** - Crawler API calls `paw_selenium_crawler` not `selenium_crawler`
 15. **Todo list is shared** - All users see and manage the same todos (not per-user)
 16. **Todo API uses regex location** - Nginx location is `~ ^/api/todos(/.*)?$` to preserve full path
+17. **Todo route order critical** - `/api/todos/users` endpoint must be defined BEFORE `/api/todos/{todo_id}` in FastAPI
+18. **Todo assignees from users table** - Assignment dropdown populated from `users` table, not a separate list
 
 ### Production Checklist
 
