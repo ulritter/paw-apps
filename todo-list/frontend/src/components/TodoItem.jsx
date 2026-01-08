@@ -92,14 +92,14 @@ export default function TodoItem({ todo, onToggle, onEdit, onDelete }) {
           {todo.assigned_to && (
             <span className="assigned-to">
               <User size={14} />
-              Zugewiesen: {todo.assigned_to_name || todo.assigned_to}
+              Zugewiesen: <a href={`mailto:${todo.assigned_to}`} style={{ color: 'inherit', textDecoration: 'underline' }}>{todo.assigned_to_name || todo.assigned_to}</a>
             </span>
           )}
 
           {todo.created_by && (
             <span className="created-by">
               <User size={14} />
-              Erstellt: {todo.created_by}
+              Erstellt: <a href={`mailto:${todo.created_by}`} style={{ color: 'inherit', textDecoration: 'underline' }}>{todo.created_by_name || todo.created_by}</a>
             </span>
           )}
         </div>

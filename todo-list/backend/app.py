@@ -77,6 +77,7 @@ class TodoResponse(BaseModel):
     completed_by: Optional[str]
     assigned_to: Optional[str]
     assigned_to_name: Optional[str]
+    created_by_name: Optional[str]
 
 class TodoStats(BaseModel):
     total: int
@@ -146,16 +147,26 @@ async def get_todos(
         query = """
             SELECT t.*,
                    CASE
-                       WHEN u.first_name IS NOT NULL AND u.last_name IS NOT NULL
-                       THEN CONCAT(u.first_name, ' ', u.last_name)
-                       WHEN u.first_name IS NOT NULL
-                       THEN u.first_name
-                       WHEN u.last_name IS NOT NULL
-                       THEN u.last_name
+                       WHEN u_assigned.first_name IS NOT NULL AND u_assigned.last_name IS NOT NULL
+                       THEN CONCAT(u_assigned.first_name, ' ', u_assigned.last_name)
+                       WHEN u_assigned.first_name IS NOT NULL
+                       THEN u_assigned.first_name
+                       WHEN u_assigned.last_name IS NOT NULL
+                       THEN u_assigned.last_name
                        ELSE t.assigned_to
-                   END AS assigned_to_name
+                   END AS assigned_to_name,
+                   CASE
+                       WHEN u_creator.first_name IS NOT NULL AND u_creator.last_name IS NOT NULL
+                       THEN CONCAT(u_creator.first_name, ' ', u_creator.last_name)
+                       WHEN u_creator.first_name IS NOT NULL
+                       THEN u_creator.first_name
+                       WHEN u_creator.last_name IS NOT NULL
+                       THEN u_creator.last_name
+                       ELSE t.created_by
+                   END AS created_by_name
             FROM todos t
-            LEFT JOIN users u ON t.assigned_to = u.email
+            LEFT JOIN users u_assigned ON t.assigned_to = u_assigned.email
+            LEFT JOIN users u_creator ON t.created_by = u_creator.email
             WHERE 1=1
         """
         params = []
@@ -242,16 +253,26 @@ async def get_todo(
         cur.execute("""
             SELECT t.*,
                    CASE
-                       WHEN u.first_name IS NOT NULL AND u.last_name IS NOT NULL
-                       THEN CONCAT(u.first_name, ' ', u.last_name)
-                       WHEN u.first_name IS NOT NULL
-                       THEN u.first_name
-                       WHEN u.last_name IS NOT NULL
-                       THEN u.last_name
+                       WHEN u_assigned.first_name IS NOT NULL AND u_assigned.last_name IS NOT NULL
+                       THEN CONCAT(u_assigned.first_name, ' ', u_assigned.last_name)
+                       WHEN u_assigned.first_name IS NOT NULL
+                       THEN u_assigned.first_name
+                       WHEN u_assigned.last_name IS NOT NULL
+                       THEN u_assigned.last_name
                        ELSE t.assigned_to
-                   END AS assigned_to_name
+                   END AS assigned_to_name,
+                   CASE
+                       WHEN u_creator.first_name IS NOT NULL AND u_creator.last_name IS NOT NULL
+                       THEN CONCAT(u_creator.first_name, ' ', u_creator.last_name)
+                       WHEN u_creator.first_name IS NOT NULL
+                       THEN u_creator.first_name
+                       WHEN u_creator.last_name IS NOT NULL
+                       THEN u_creator.last_name
+                       ELSE t.created_by
+                   END AS created_by_name
             FROM todos t
-            LEFT JOIN users u ON t.assigned_to = u.email
+            LEFT JOIN users u_assigned ON t.assigned_to = u_assigned.email
+            LEFT JOIN users u_creator ON t.created_by = u_creator.email
             WHERE t.id = %s
         """, (todo_id,))
         todo = cur.fetchone()
@@ -289,20 +310,30 @@ async def create_todo(
         new_todo = cur.fetchone()
         todo_id = new_todo['id']
 
-        # Get the todo with the user name
+        # Get the todo with the user names
         cur.execute("""
             SELECT t.*,
                    CASE
-                       WHEN u.first_name IS NOT NULL AND u.last_name IS NOT NULL
-                       THEN CONCAT(u.first_name, ' ', u.last_name)
-                       WHEN u.first_name IS NOT NULL
-                       THEN u.first_name
-                       WHEN u.last_name IS NOT NULL
-                       THEN u.last_name
+                       WHEN u_assigned.first_name IS NOT NULL AND u_assigned.last_name IS NOT NULL
+                       THEN CONCAT(u_assigned.first_name, ' ', u_assigned.last_name)
+                       WHEN u_assigned.first_name IS NOT NULL
+                       THEN u_assigned.first_name
+                       WHEN u_assigned.last_name IS NOT NULL
+                       THEN u_assigned.last_name
                        ELSE t.assigned_to
-                   END AS assigned_to_name
+                   END AS assigned_to_name,
+                   CASE
+                       WHEN u_creator.first_name IS NOT NULL AND u_creator.last_name IS NOT NULL
+                       THEN CONCAT(u_creator.first_name, ' ', u_creator.last_name)
+                       WHEN u_creator.first_name IS NOT NULL
+                       THEN u_creator.first_name
+                       WHEN u_creator.last_name IS NOT NULL
+                       THEN u_creator.last_name
+                       ELSE t.created_by
+                   END AS created_by_name
             FROM todos t
-            LEFT JOIN users u ON t.assigned_to = u.email
+            LEFT JOIN users u_assigned ON t.assigned_to = u_assigned.email
+            LEFT JOIN users u_creator ON t.created_by = u_creator.email
             WHERE t.id = %s
         """, (todo_id,))
         new_todo_with_name = cur.fetchone()
@@ -371,20 +402,30 @@ async def update_todo(
         cur.execute(query, params)
         updated_todo = cur.fetchone()
 
-        # Get the todo with the user name
+        # Get the todo with the user names
         cur.execute("""
             SELECT t.*,
                    CASE
-                       WHEN u.first_name IS NOT NULL AND u.last_name IS NOT NULL
-                       THEN CONCAT(u.first_name, ' ', u.last_name)
-                       WHEN u.first_name IS NOT NULL
-                       THEN u.first_name
-                       WHEN u.last_name IS NOT NULL
-                       THEN u.last_name
+                       WHEN u_assigned.first_name IS NOT NULL AND u_assigned.last_name IS NOT NULL
+                       THEN CONCAT(u_assigned.first_name, ' ', u_assigned.last_name)
+                       WHEN u_assigned.first_name IS NOT NULL
+                       THEN u_assigned.first_name
+                       WHEN u_assigned.last_name IS NOT NULL
+                       THEN u_assigned.last_name
                        ELSE t.assigned_to
-                   END AS assigned_to_name
+                   END AS assigned_to_name,
+                   CASE
+                       WHEN u_creator.first_name IS NOT NULL AND u_creator.last_name IS NOT NULL
+                       THEN CONCAT(u_creator.first_name, ' ', u_creator.last_name)
+                       WHEN u_creator.first_name IS NOT NULL
+                       THEN u_creator.first_name
+                       WHEN u_creator.last_name IS NOT NULL
+                       THEN u_creator.last_name
+                       ELSE t.created_by
+                   END AS created_by_name
             FROM todos t
-            LEFT JOIN users u ON t.assigned_to = u.email
+            LEFT JOIN users u_assigned ON t.assigned_to = u_assigned.email
+            LEFT JOIN users u_creator ON t.created_by = u_creator.email
             WHERE t.id = %s
         """, (todo_id,))
         updated_todo_with_name = cur.fetchone()
@@ -439,20 +480,30 @@ async def toggle_complete(
 
         updated_todo = cur.fetchone()
 
-        # Get the todo with the user name
+        # Get the todo with the user names
         cur.execute("""
             SELECT t.*,
                    CASE
-                       WHEN u.first_name IS NOT NULL AND u.last_name IS NOT NULL
-                       THEN CONCAT(u.first_name, ' ', u.last_name)
-                       WHEN u.first_name IS NOT NULL
-                       THEN u.first_name
-                       WHEN u.last_name IS NOT NULL
-                       THEN u.last_name
+                       WHEN u_assigned.first_name IS NOT NULL AND u_assigned.last_name IS NOT NULL
+                       THEN CONCAT(u_assigned.first_name, ' ', u_assigned.last_name)
+                       WHEN u_assigned.first_name IS NOT NULL
+                       THEN u_assigned.first_name
+                       WHEN u_assigned.last_name IS NOT NULL
+                       THEN u_assigned.last_name
                        ELSE t.assigned_to
-                   END AS assigned_to_name
+                   END AS assigned_to_name,
+                   CASE
+                       WHEN u_creator.first_name IS NOT NULL AND u_creator.last_name IS NOT NULL
+                       THEN CONCAT(u_creator.first_name, ' ', u_creator.last_name)
+                       WHEN u_creator.first_name IS NOT NULL
+                       THEN u_creator.first_name
+                       WHEN u_creator.last_name IS NOT NULL
+                       THEN u_creator.last_name
+                       ELSE t.created_by
+                   END AS created_by_name
             FROM todos t
-            LEFT JOIN users u ON t.assigned_to = u.email
+            LEFT JOIN users u_assigned ON t.assigned_to = u_assigned.email
+            LEFT JOIN users u_creator ON t.created_by = u_creator.email
             WHERE t.id = %s
         """, (todo_id,))
         updated_todo_with_name = cur.fetchone()

@@ -108,24 +108,20 @@ export default function TodoForm({ todo, users = [], onSave, onCancel }) {
               <label htmlFor="category" className="form-label">
                 Kategorie
               </label>
-              <input
-                type="text"
+              <select
                 id="category"
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
-                className="form-input"
-                placeholder="z.B. Entwicklung, Design"
-                list="categories"
-              />
-              <datalist id="categories">
-                <option value="Entwicklung" />
-                <option value="Design" />
-                <option value="Testing" />
-                <option value="Dokumentation" />
-                <option value="Meeting" />
-                <option value="Review" />
-              </datalist>
+                className="form-select"
+              >
+                <option value="">Keine Kategorie</option>
+                <option value="Vertrieb">Vertrieb</option>
+                <option value="Support">Support</option>
+                <option value="Meeting">Meeting</option>
+                <option value="Planung">Planung</option>
+                <option value="Admin">Admin</option>
+              </select>
             </div>
           </div>
 

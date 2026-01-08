@@ -441,9 +441,16 @@ CREATE INDEX idx_todos_assigned_to ON todos (assigned_to);
 - `assigned_to`: Email of user assigned to this todo (links to users.email)
 
 **Display Names**:
-- API joins with `users` table to construct display names: `first_name + last_name` (or email as fallback)
-- Frontend displays `assigned_to_name` field instead of raw email addresses
-- Applies to: todo items, assignment dropdown, and filter dropdown
+- API joins with `users` table twice to construct display names for both assigned and creator
+- `assigned_to_name`: Display name for assigned user (first_name + last_name, or email as fallback)
+- `created_by_name`: Display name for creator user (first_name + last_name, or email as fallback)
+- Frontend displays clickable mailto links for both fields
+- Applies to: todo items (with mailto links), assignment dropdown, and filter dropdown
+
+**Categories**:
+- Predefined categories: Vertrieb, Support, Meeting, Planung, Admin
+- Category field uses dropdown (select) for consistency
+- "Keine Kategorie" option for tasks without category
 
 **Indexes**:
 - Performance indexes on `completed`, `priority`, `due_date`, `created_at`, `category`, and `assigned_to`
@@ -514,11 +521,12 @@ All protected pages include:
 - **Shared team todolist** - All authenticated users see and manage the same todos
 - **Task assignment** - Assign todos to team members from user database dropdown
 - **User-friendly display** - Shows user names (first + last name) instead of email addresses, with email as fallback
+- **Mailto links** - Click on assigned or created-by names to open email client
 - **Priority levels** - Low, medium, and high priorities with color coding
-- **Categories/tags** - Organize todos with custom categories
+- **Predefined categories** - Choose from Vertrieb, Support, Meeting, Planung, or Admin
 - **Due dates** - Set deadlines with visual indicators for overdue items
 - **Rich descriptions** - Add detailed notes and context to each todo
-- **User tracking** - Track who created, assigned, and completed each todo (displayed by name)
+- **User tracking** - Track who created, assigned, and completed each todo (displayed by name with mailto links)
 - **Real-time statistics** - Dashboard showing completion rate and priority breakdown
 - **Advanced filtering** - Filter by completion status, priority, category, assigned user (by name), or search by title
 - **Sort options** - Sort by created date, due date, or priority
@@ -605,14 +613,16 @@ When working with this application:
 16. **Todo API uses regex location** - Nginx location is `~ ^/api/todos(/.*)?$` to preserve full path
 17. **Todo route order critical** - `/api/todos/users` endpoint must be defined BEFORE `/api/todos/{todo_id}` in FastAPI
 18. **Todo assignees from users table** - Assignment dropdown populated from `users` table, not a separate list
-19. **Todo displays user names** - API joins with users table to show names instead of emails (email as fallback)
-20. **User Management is admin-only** - Card hidden on landing page for non-admin users
-21. **Super admin is unique** - Only uwe.ritter@paw-systems.com can grant/revoke admin rights
-22. **Admin safety checks** - System prevents deleting or demoting the last administrator
-23. **User Management API uses path stripping** - Nginx strips `/api/user-management/` prefix
-24. **Auth endpoint includes admin status** - `/api/crawler/auth/check` returns `is_admin` flag
-25. **Admin check uses database** - Auth endpoint queries users table for `is_admin` on every check
-26. **Todo API returns display_name** - All endpoints join users table to provide `assigned_to_name` field
+19. **Todo displays user names** - API joins with users table twice to show names for both assigned and creator (email as fallback)
+20. **Todo name fields have mailto links** - Both `assigned_to_name` and `created_by_name` are clickable mailto links
+21. **Todo categories are predefined** - Uses select dropdown with: Vertrieb, Support, Meeting, Planung, Admin
+22. **Todo API returns display names** - All endpoints join users table twice to provide both `assigned_to_name` and `created_by_name` fields
+23. **User Management is admin-only** - Card hidden on landing page for non-admin users
+24. **Super admin is unique** - Only uwe.ritter@paw-systems.com can grant/revoke admin rights
+25. **Admin safety checks** - System prevents deleting or demoting the last administrator
+26. **User Management API uses path stripping** - Nginx strips `/api/user-management/` prefix
+27. **Auth endpoint includes admin status** - `/api/crawler/auth/check` returns `is_admin` flag
+28. **Admin check uses database** - Auth endpoint queries users table for `is_admin` on every check
 
 ### Production Checklist
 
