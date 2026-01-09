@@ -4,6 +4,7 @@ const API_URL = '/api/crawler';
 let groupingMode = 'provider-query'; // or 'query-provider'
 let displayMode = 'table'; // or 'cards'
 let dateFilterDays = null; // null = no filter, 7/14/30 = days
+let isAdmin = false; // Track if current user is admin
 
 // Format posted date to always show date only (DD.MM.YYYY)
 function formatPostedDate(job) {
@@ -63,7 +64,10 @@ async function checkAuth() {
     if (userEmailElement) {
       userEmailElement.textContent = userEmail;
     }
-    console.log('Authenticated as:', userEmail);
+
+    // Store admin status
+    isAdmin = data.is_admin || false;
+    console.log('Authenticated as:', userEmail, '(Admin:', isAdmin, ')');
     return true;
   } catch (error) {
     console.error('Auth check failed:', error);
@@ -136,21 +140,21 @@ async function loadJobs() {
 // Toggle processed status
 async function toggleProcessed(jobId, checkbox) {
   const processed = checkbox.checked;
-  
+
   try {
     const response = await fetch(`${API_URL}/jobs/${jobId}/processed?processed=${processed}`, {
       method: 'PATCH',
       credentials: 'include'
     });
-    
+
     const data = await response.json();
-    
+
     if (data.status === 'error') {
       console.error('Error updating processed status:', data.error);
       checkbox.checked = !processed;
       return;
     }
-    
+
     // Visual feedback
     const jobElement = checkbox.closest('.job') || checkbox.closest('tr');
     if (jobElement) {
@@ -169,6 +173,48 @@ async function toggleProcessed(jobId, checkbox) {
   } catch (error) {
     console.error('Error:', error);
     checkbox.checked = !processed;
+  }
+}
+
+// Delete job (admin only)
+async function deleteJob(jobId) {
+  if (!confirm('Möchten Sie diesen Job wirklich löschen?')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/jobs/${jobId}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+
+    if (response.status === 403) {
+      alert('Nur Administratoren können Jobs löschen.');
+      return;
+    }
+
+    if (response.status === 404) {
+      alert('Job wurde nicht gefunden (möglicherweise bereits gelöscht).');
+      loadJobs(); // Reload to refresh the list
+      return;
+    }
+
+    if (response.status === 204) {
+      // Success - 204 No Content
+      loadJobs();
+      return;
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `HTTP ${response.status}`);
+    }
+
+    // Reload jobs to reflect the deletion
+    loadJobs();
+  } catch (error) {
+    console.error('Error deleting job:', error);
+    alert('Fehler beim Löschen des Jobs: ' + error.message);
   }
 }
 
@@ -215,10 +261,24 @@ function displayGroupedByProviderThenQuery(jobs, container) {
         const div = document.createElement("div");
         div.className = "job";
         div.style.marginLeft = "1.5rem";
+
+        const deleteButton = isAdmin
+          ? `<button onclick="deleteJob(${job.id})"
+                     class="delete-btn-icon"
+                     title="Löschen">
+               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                 <polyline points="3 6 5 6 21 6"></polyline>
+                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                 <line x1="10" y1="11" x2="10" y2="17"></line>
+                 <line x1="14" y1="11" x2="14" y2="17"></line>
+               </svg>
+             </button>`
+          : '';
+
         div.innerHTML = `
           <div style="display: flex; align-items: start; gap: 1rem;">
-            <input type="checkbox" 
-                   ${job.processed ? 'checked' : ''} 
+            <input type="checkbox"
+                   ${job.processed ? 'checked' : ''}
                    onchange="toggleProcessed(${job.id}, this)"
                    style="margin-top: 0.5rem; width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
             <div style="flex: 1;">
@@ -226,6 +286,7 @@ function displayGroupedByProviderThenQuery(jobs, container) {
               <p><b>${job.company || "Unbekannt"}</b> – ${job.location || "n/a"}</p>
               <small>${formatPostedDate(job)}</small>
             </div>
+            ${deleteButton}
           </div>
         `;
         if (job.processed) {
@@ -281,10 +342,24 @@ function displayGroupedByQueryThenProvider(jobs, container) {
         const div = document.createElement("div");
         div.className = "job";
         div.style.marginLeft = "1.5rem";
+
+        const deleteButton = isAdmin
+          ? `<button onclick="deleteJob(${job.id})"
+                     class="delete-btn-icon"
+                     title="Löschen">
+               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                 <polyline points="3 6 5 6 21 6"></polyline>
+                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                 <line x1="10" y1="11" x2="10" y2="17"></line>
+                 <line x1="14" y1="11" x2="14" y2="17"></line>
+               </svg>
+             </button>`
+          : '';
+
         div.innerHTML = `
           <div style="display: flex; align-items: start; gap: 1rem;">
-            <input type="checkbox" 
-                   ${job.processed ? 'checked' : ''} 
+            <input type="checkbox"
+                   ${job.processed ? 'checked' : ''}
                    onchange="toggleProcessed(${job.id}, this)"
                    style="margin-top: 0.5rem; width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
             <div style="flex: 1;">
@@ -292,6 +367,7 @@ function displayGroupedByQueryThenProvider(jobs, container) {
               <p><b>${job.company || "Unbekannt"}</b> – ${job.location || "n/a"}</p>
               <small>${formatPostedDate(job)}</small>
             </div>
+            ${deleteButton}
           </div>
         `;
         if (job.processed) {
@@ -573,22 +649,37 @@ function sortTable(tableId, column) {
   sortedJobs.forEach((job, index) => {
     const row = document.createElement('tr');
     row.style.cssText = 'border-bottom: 1px solid #e2e8f0; transition: background 0.2s;';
-    
+
     const baseBackground = index % 2 === 0 ? 'white' : '#fafafa';
     const processedBackground = job.processed ? '#f0fdf4' : baseBackground;
-    
+
     row.onmouseover = () => row.style.background = '#f7fafc';
     row.onmouseout = () => row.style.background = processedBackground;
     row.style.background = processedBackground;
-    
+
     if (job.processed) {
       row.style.opacity = '0.6';
     }
-    
+
+    const deleteColumn = isAdmin
+      ? `<td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
+          <button onclick="deleteJob(${job.id})"
+                  class="delete-btn-icon"
+                  title="Löschen">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+          </button>
+        </td>`
+      : '';
+
     row.innerHTML = `
       <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
-        <input type="checkbox" 
-               ${job.processed ? 'checked' : ''} 
+        <input type="checkbox"
+               ${job.processed ? 'checked' : ''}
                onchange="toggleProcessed(${job.id}, this)"
                style="width: 18px; height: 18px; cursor: pointer;">
       </td>
@@ -601,8 +692,9 @@ function sortTable(tableId, column) {
       <td style="padding: 0.75rem; vertical-align: top; color: #4a5568;">${job.location || 'N/A'}</td>
       <td style="padding: 0.75rem; vertical-align: top; color: #718096; font-size: 0.85rem;">${formatPostedDate(job)}</td>
       <td style="padding: 0.75rem; vertical-align: top; color: #718096; font-size: 0.85rem;">${job.created_at ? new Date(job.created_at).toLocaleDateString('de-DE') : 'N/A'}</td>
+      ${deleteColumn}
     `;
-    
+
     tbody.appendChild(row);
   });
   
@@ -662,6 +754,10 @@ function createJobTable(jobs, container, marginLeft = '0') {
   
   // Table header with sortable columns
   const thead = document.createElement('thead');
+  const deleteColumnHeader = isAdmin
+    ? '<th style="padding: 0.75rem; text-align: center; font-weight: 600; color: #2d3748; font-size: 0.85rem; width: 50px;"></th>'
+    : '';
+
   thead.innerHTML = `
     <tr style="background: #f7fafc; border-bottom: 2px solid #e2e8f0;">
       <th style="padding: 0.75rem; text-align: center; font-weight: 600; color: #2d3748; font-size: 0.85rem; width: 50px;">✓</th>
@@ -680,6 +776,7 @@ function createJobTable(jobs, container, marginLeft = '0') {
       <th data-column="created_at" onclick="sortTable('${tableId}', 'created_at')" style="padding: 0.75rem; text-align: left; font-weight: 600; color: #2d3748; font-size: 0.85rem; cursor: pointer; user-select: none;">
         Erfasst am<span class="sort-indicator" style="opacity: 0.3;"> ▲</span>
       </th>
+      ${deleteColumnHeader}
     </tr>
   `;
   table.appendChild(thead);
@@ -690,22 +787,37 @@ function createJobTable(jobs, container, marginLeft = '0') {
   sortedJobs.forEach((job, index) => {
     const row = document.createElement('tr');
     row.style.cssText = 'border-bottom: 1px solid #e2e8f0; transition: background 0.2s;';
-    
+
     const baseBackground = index % 2 === 0 ? 'white' : '#fafafa';
     const processedBackground = job.processed ? '#f0fdf4' : baseBackground;
-    
+
     row.onmouseover = () => row.style.background = '#f7fafc';
     row.onmouseout = () => row.style.background = processedBackground;
     row.style.background = processedBackground;
-    
+
     if (job.processed) {
       row.style.opacity = '0.6';
     }
-    
+
+    const deleteColumn = isAdmin
+      ? `<td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
+          <button onclick="deleteJob(${job.id})"
+                  class="delete-btn-icon"
+                  title="Löschen">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+          </button>
+        </td>`
+      : '';
+
     row.innerHTML = `
       <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
-        <input type="checkbox" 
-               ${job.processed ? 'checked' : ''} 
+        <input type="checkbox"
+               ${job.processed ? 'checked' : ''}
                onchange="toggleProcessed(${job.id}, this)"
                style="width: 18px; height: 18px; cursor: pointer;">
       </td>
@@ -718,8 +830,9 @@ function createJobTable(jobs, container, marginLeft = '0') {
       <td style="padding: 0.75rem; vertical-align: top; color: #4a5568;">${job.location || 'N/A'}</td>
       <td style="padding: 0.75rem; vertical-align: top; color: #718096; font-size: 0.85rem;">${formatPostedDate(job)}</td>
       <td style="padding: 0.75rem; vertical-align: top; color: #718096; font-size: 0.85rem;">${job.created_at ? new Date(job.created_at).toLocaleDateString('de-DE') : 'N/A'}</td>
+      ${deleteColumn}
     `;
-    
+
     tbody.appendChild(row);
   });
   

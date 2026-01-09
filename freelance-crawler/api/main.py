@@ -689,25 +689,62 @@ def update_job_processed(job_id: int, processed: bool):
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        
+
         cur.execute("""
-            UPDATE jobs 
-            SET processed = %s 
+            UPDATE jobs
+            SET processed = %s
             WHERE id = %s
             RETURNING id;
         """, (processed, job_id))
-        
+
         result = cur.fetchone()
         conn.commit()
         cur.close()
         conn.close()
-        
+
         if result:
             return {"status": "success", "id": result[0], "processed": processed}
         else:
             return {"status": "error", "error": "Job not found"}
     except Exception as e:
         return {"status": "error", "error": str(e)}
+
+@app.delete("/jobs/{job_id}", status_code=204)
+async def delete_job(job_id: int, email: str = Depends(verify_auth_token)):
+    """Delete a job (admin only)"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Check if user is admin
+        cur.execute("SELECT is_admin FROM users WHERE email = %s", (email,))
+        user = cur.fetchone()
+
+        if not user or not user[0]:
+            cur.close()
+            conn.close()
+            raise HTTPException(status_code=403, detail="Only administrators can delete jobs")
+
+        # Delete the job
+        cur.execute("DELETE FROM jobs WHERE id = %s RETURNING id", (job_id,))
+        deleted = cur.fetchone()
+
+        if not deleted:
+            cur.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Job not found")
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        logger.info(f"Job {job_id} deleted by admin {email}")
+        return None
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting job {job_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete job: {str(e)}")
 
 import json
 import re

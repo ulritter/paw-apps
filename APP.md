@@ -499,6 +499,7 @@ All protected pages include:
 - **Date-based filtering** - Filter jobs by scrape date (last 7/14/30 days)
 - **Dual date tracking** - "Veröffentlicht" (posted date) and "Erfasst am" (scraped date) columns
 - **Consistent date formatting** - All dates displayed in DD.MM.YYYY format
+- **Admin job deletion** - Administrators can delete individual jobs with trash icon (non-admins cannot)
 - **CSV Export** - Download entire jobs database as CSV file
 - **Configuration management** - JSON-based crawler configuration with wizard
 - **Document upload/management** - Store and manage application documents
@@ -623,6 +624,9 @@ When working with this application:
 26. **User Management API uses path stripping** - Nginx strips `/api/user-management/` prefix
 27. **Auth endpoint includes admin status** - `/api/crawler/auth/check` returns `is_admin` flag
 28. **Admin check uses database** - Auth endpoint queries users table for `is_admin` on every check
+29. **Crawler delete is admin-only** - DELETE `/api/crawler/jobs/{job_id}` endpoint requires admin status (403 for non-admins)
+30. **Delete button visibility** - Trash icon only rendered in frontend when `isAdmin` flag is true
+31. **Delete icon matches todo list** - Uses same SVG trash icon styling (transparent background, red on hover)
 
 ### Production Checklist
 

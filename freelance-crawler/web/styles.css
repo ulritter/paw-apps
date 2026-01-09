@@ -632,3 +632,28 @@ a:hover {
 .wizard-form-group {
   margin-bottom: 1rem;
 }
+
+/* Delete button icon styling (like todo list) */
+.delete-btn-icon {
+  background: transparent;
+  border: none;
+  color: #718096;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.delete-btn-icon:hover {
+  background: rgba(245, 101, 101, 0.1);
+  color: #f56565;
+}
+
+.delete-btn-icon svg {
+  width: 16px;
+  height: 16px;
+}
