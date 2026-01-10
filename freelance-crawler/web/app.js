@@ -2020,7 +2020,7 @@ function renderViewQueriesWizard() {
             <td style="padding: 0.75rem; vertical-align: top; color: #2d3748; font-weight: 500;">${escapeHtml(q.query)}</td>
             <td style="padding: 0.75rem; vertical-align: top; color: #4a5568;">${escapeHtml(keywordList)}</td>
             <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
-              <button class="query-btn delete" onclick="deleteQuery('${escapeHtml(provider)}', ${index})" 
+              <button class="query-btn delete" data-provider="${escapeHtml(provider)}" data-index="${index}" onclick="deleteQuery(this.getAttribute('data-provider'), parseInt(this.getAttribute('data-index')))"
                       style="padding: 0.5rem 0.75rem;">🗑️ Delete</button>
             </td>
           </tr>
@@ -2057,17 +2057,37 @@ function renderViewQueriesWizard() {
     
     // Find categories that exist but aren't used by this provider
     const availableCategories = allCategories.filter(cat => !usedCategories.has(cat));
-    
-    if (availableCategories.length > 0) {
+
+    // Add section to add existing queries from other providers
+    const queriesInOtherProviders = uniqueQueries.filter(q => {
+      // Check if this query exists in current provider
+      const existsInCurrent = queries.some(pq => pq.query === q);
+      return !existsInCurrent;
+    });
+
+    console.log(`Provider ${provider} - Queries in other providers:`, queriesInOtherProviders);
+    console.log(`Provider ${provider} - Available categories:`, availableCategories);
+
+    // Combine both into a single picklist with optgroups
+    if (availableCategories.length > 0 || queriesInOtherProviders.length > 0) {
       html += `
         <div style="background: white; border-radius: 10px; padding: 1rem 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
           <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <label style="font-weight: 600; color: #2d3748; white-space: nowrap;">➕ Add Category:</label>
-            <select id="addCategory_${provider}" class="wizard-select" style="flex: 1;">
-              <option value="">-- Select a category to add --</option>
-              ${availableCategories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join('')}
+            <label style="font-weight: 600; color: #2d3748; white-space: nowrap;">➕ Add:</label>
+            <select id="addItem_${provider}" class="wizard-select" style="flex: 1;">
+              <option value="">-- Select to add --</option>
+              ${availableCategories.length > 0 ? `
+                <optgroup label="📁 Categories (create new query)">
+                  ${availableCategories.map(cat => `<option value="category:${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join('')}
+                </optgroup>
+              ` : ''}
+              ${queriesInOtherProviders.length > 0 ? `
+                <optgroup label="📋 Existing Queries (copy from other providers)">
+                  ${queriesInOtherProviders.map(q => `<option value="query:${escapeHtml(q)}">${escapeHtml(q)}</option>`).join('')}
+                </optgroup>
+              ` : ''}
             </select>
-            <button class="wizard-btn primary" onclick="addCategoryToProvider('${provider}')" style="padding: 0.5rem 1rem; white-space: nowrap;">✓ Add</button>
+            <button class="wizard-btn primary" data-provider="${escapeHtml(provider)}" onclick="addItemToProvider(this.getAttribute('data-provider'))" style="padding: 0.5rem 1rem; white-space: nowrap;">✓ Add</button>
           </div>
         </div>
       `;
@@ -2164,15 +2184,9 @@ async function saveSingleCategory(category) {
   alert(`Category "${category}" saved and activated successfully!`);
 }
 
-// Add query to provider
-async function addQueryToProvider(provider) {
-  const select = document.getElementById(`addQuery_${provider}`);
-  if (!select || !select.value) {
-    alert('Please select a query to add');
-    return;
-  }
-  
-  const queryText = select.value;
+// Add query to provider (implementation)
+async function addQueryToProviderImpl(provider, queryText) {
+  console.log('Adding query:', queryText, 'to provider:', provider);
   
   // Find the query details from other providers to get keywords
   const providers = ['freelancermap', 'solcom', 'hays'];
@@ -2201,12 +2215,140 @@ async function addQueryToProvider(provider) {
     query: queryText,
     keywords: queryKeywords
   });
-  
-  // Save and refresh
-  await saveWizardConfig();
-  
-  // Refresh the wizard to show updated list
-  openWizard('viewQueries');
+
+  console.log('Saving configuration...');
+
+  // Save configuration
+  try {
+    const response = await fetch(`${API_URL}/config/save`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(wizardConfig)
+    });
+
+    const data = await response.json();
+    console.log('Save response:', data);
+
+    if (data.status === 'error') {
+      alert('Error saving configuration: ' + data.error);
+      return;
+    }
+
+    // Auto-activate the new configuration
+    await fetch(`${API_URL}/config/activate/${data.filename}`, {
+      method: 'POST',
+      credentials: 'include'
+    });
+
+    console.log('Configuration activated');
+
+    // Refresh the wizard to show updated list
+    openWizard('viewQueries');
+  } catch (error) {
+    console.error('Error saving configuration:', error);
+    alert('Error saving configuration: ' + error.message);
+  }
+}
+
+// Add item (category or query) to provider
+async function addItemToProvider(provider) {
+  console.log('addItemToProvider called for provider:', provider);
+  const select = document.getElementById(`addItem_${provider}`);
+  console.log('Select element found:', select);
+  console.log('Select value:', select ? select.value : 'N/A');
+
+  if (!select || !select.value) {
+    alert('Please select an item to add');
+    return;
+  }
+
+  const value = select.value;
+  const [type, item] = value.split(':');
+
+  console.log('Type:', type, 'Item:', item);
+
+  if (type === 'category') {
+    await addCategoryToProviderImpl(provider, item);
+  } else if (type === 'query') {
+    await addQueryToProviderImpl(provider, item);
+  }
+}
+
+// Add category to provider (implementation)
+async function addCategoryToProviderImpl(provider, category) {
+  console.log('Adding category:', category, 'to provider:', provider);
+
+  // Get the keywords for this category
+  const keywords = wizardConfig.keywords && wizardConfig.keywords[category]
+    ? wizardConfig.keywords[category]
+    : [];
+
+  if (keywords.length === 0) {
+    alert(`Category "${category}" has no keywords defined. Please add keywords first.`);
+    return;
+  }
+
+  // Create a query name from the category
+  const queryText = category.replace(/_/g, ' ');
+
+  // Add query to the provider
+  if (!wizardConfig[provider]) {
+    wizardConfig[provider] = { queries: [] };
+  }
+  if (!wizardConfig[provider].queries) {
+    wizardConfig[provider].queries = [];
+  }
+
+  // Check if query already exists
+  const existingQuery = wizardConfig[provider].queries.find(q => q.query === queryText);
+  if (existingQuery) {
+    alert(`Query "${queryText}" already exists for this provider`);
+    return;
+  }
+
+  wizardConfig[provider].queries.push({
+    query: queryText,
+    keywords: [category]
+  });
+
+  console.log('Saving configuration...');
+
+  // Save configuration
+  try {
+    const response = await fetch(`${API_URL}/config/save`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(wizardConfig)
+    });
+
+    const data = await response.json();
+    console.log('Save response:', data);
+
+    if (data.status === 'error') {
+      alert('Error saving configuration: ' + data.error);
+      return;
+    }
+
+    // Auto-activate the new configuration
+    await fetch(`${API_URL}/config/activate/${data.filename}`, {
+      method: 'POST',
+      credentials: 'include'
+    });
+
+    console.log('Configuration activated');
+
+    // Refresh the wizard to show updated list
+    openWizard('viewQueries');
+  } catch (error) {
+    console.error('Error saving configuration:', error);
+    alert('Error saving configuration: ' + error.message);
+  }
 }
 
 // Delete query
