@@ -501,7 +501,13 @@ All protected pages include:
 - **Consistent date formatting** - All dates displayed in DD.MM.YYYY format
 - **Admin job deletion** - Administrators can delete individual jobs with trash icon (non-admins cannot)
 - **CSV Export** - Download entire jobs database as CSV file
-- **Configuration management** - JSON-based crawler configuration with wizard
+- **Configuration management** - JSON-based crawler configuration with Simple Mode and Expert Mode
+  - **Simple Mode Wizard** - User-friendly interface with:
+    - Unified picklist for adding queries/categories (Categories: create new query, Existing Queries: copy from other providers)
+    - Visual grouping with icons (📁 Categories, 📋 Existing Queries)
+    - Easy query management with delete buttons
+    - Keyword category management
+  - **Expert Mode** - Direct JSON editing for advanced users
 - **Document upload/management** - Store and manage application documents
 - **Scheduled crawling** - Automatic crawling every 3 hours (00:07, 03:07, etc.)
 - **Automatic purge** - Old jobs deleted nightly (configurable retention period)
@@ -627,6 +633,8 @@ When working with this application:
 29. **Crawler delete is admin-only** - DELETE `/api/crawler/jobs/{job_id}` endpoint requires admin status (403 for non-admins)
 30. **Delete button visibility** - Trash icon only rendered in frontend when `isAdmin` flag is true
 31. **Delete icon matches todo list** - Uses same SVG trash icon styling (transparent background, red on hover)
+32. **Crawler config uses unified picklist** - Simple Mode has single dropdown with optgroups: Categories (create new) and Existing Queries (copy)
+33. **Config onclick uses data-attributes** - All event handlers use `data-provider` attributes instead of inline strings to prevent escaping issues
 
 ### Production Checklist
 
