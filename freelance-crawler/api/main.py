@@ -249,11 +249,13 @@ async def send_auth_email(email: str, code: str):
     if not SMTP_USER or not SMTP_PASSWORD:
         print("⚠️  Email not configured. Auth code:", code)
         return
-    
+
     message = EmailMessage()
     message["From"] = SMTP_FROM
     message["To"] = email
-    message["Subject"] = "Your Freelance Crawler Login Code"
+    message["Subject"] = "Your PAW Toolbox Login Code"
+
+    # Plain text version
     message.set_content(f"""
 Hello,
 
@@ -264,8 +266,89 @@ This code will expire in {AUTH_CODE_EXPIRY_MINUTES} minutes.
 If you didn't request this code, please ignore this email.
 
 Best regards,
-Freelance Crawler System
+PAW Toolbox System
     """)
+
+    # HTML version with PAW Systems branding
+    html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden;">
+                    <!-- Header with gradient -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #4264D1 0%, #6CE2FF 100%); padding: 40px 40px 30px 40px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">PAW Toolbox</h1>
+                            <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 16px; opacity: 0.95;">Login Verification</p>
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 40px 20px 40px;">
+                            <p style="margin: 0 0 25px 0; color: #333333; font-size: 16px; line-height: 1.6;">
+                                Hello,
+                            </p>
+                            <p style="margin: 0 0 25px 0; color: #333333; font-size: 16px; line-height: 1.6;">
+                                Your authentication code for PAW Toolbox is:
+                            </p>
+
+                            <!-- Code Box -->
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="padding: 25px 0;">
+                                        <div style="display: inline-block; background: linear-gradient(135deg, #4264D1 0%, #6CE2FF 100%); padding: 20px 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(66, 100, 209, 0.3);">
+                                            <span style="font-size: 32px; font-weight: bold; color: #ffffff; letter-spacing: 8px; font-family: 'Courier New', monospace;">{code}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 25px 0 20px 0; color: #666666; font-size: 14px; line-height: 1.6;">
+                                This code will expire in <strong style="color: #4264D1;">{AUTH_CODE_EXPIRY_MINUTES} minutes</strong>.
+                            </p>
+                            <p style="margin: 0 0 20px 0; color: #666666; font-size: 14px; line-height: 1.6;">
+                                If you didn't request this code, please ignore this email.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 30px 40px; border-top: 1px solid #e0e0e0;">
+                            <p style="margin: 0; color: #666666; font-size: 14px; line-height: 1.6;">
+                                Best regards,<br>
+                                <strong style="color: #4264D1;">PAW Systems - PAW Toolbox</strong>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Bottom spacing -->
+                <table width="600" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td style="padding: 20px; text-align: center;">
+                            <p style="margin: 0; color: #999999; font-size: 12px;">
+                                © 2026 PAW Systems. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+    """
+
+    message.add_alternative(html_content, subtype='html')
     
     try:
         await aiosmtplib.send(

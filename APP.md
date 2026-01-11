@@ -87,6 +87,22 @@ response.set_cookie(
 )
 ```
 
+### Authentication Email Template
+
+**Professional HTML Email Format:**
+- **Subject**: "Your PAW Toolbox Login Code"
+- **Branding**: Uses official PAW Systems colors (#4264D1 blue, #6CE2FF cyan)
+- **Design**: Gradient header, bold authentication code on separate line in styled box
+- **Content**: Professional layout with PAW Toolbox branding throughout
+- **Compatibility**: Includes both HTML and plain text versions
+- **SMTP**: Microsoft 365 (info@paw-systems.com)
+
+The authentication code is displayed prominently in a gradient box with:
+- 32px bold font in monospace (Courier New)
+- 8px letter spacing for readability
+- Centered on a separate line
+- 10-minute expiry notice
+
 ## 🛣️ Routing Configuration
 
 ### Nginx Route Order (CRITICAL)
@@ -185,11 +201,16 @@ SECRET_KEY=your-secret-key-here
 API_KEY=your-api-key
 
 # Email (for auth codes)
-SMTP_HOST=smtp.gmail.com
+# Microsoft 365 configuration
+SMTP_HOST=smtp.office365.com
 SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-SMTP_FROM=your-email@gmail.com
+SMTP_USER=info@paw-systems.com
+SMTP_PASSWORD=your-password
+SMTP_FROM=info@paw-systems.com
+# Alternative: Gmail configuration
+# SMTP_HOST=smtp.gmail.com
+# SMTP_USER=your-email@gmail.com
+# SMTP_PASSWORD=your-app-password
 
 # AI Service
 ANTHROPIC_API_KEY=sk-ant-...
@@ -635,6 +656,10 @@ When working with this application:
 31. **Delete icon matches todo list** - Uses same SVG trash icon styling (transparent background, red on hover)
 32. **Crawler config uses unified picklist** - Simple Mode has single dropdown with optgroups: Categories (create new) and Existing Queries (copy)
 33. **Config onclick uses data-attributes** - All event handlers use `data-provider` attributes instead of inline strings to prevent escaping issues
+34. **Nginx uses Docker DNS resolver** - Both nginx.conf and nginx-dev.conf include `resolver 127.0.0.11` to prevent startup failures when services aren't ready
+35. **Email uses PAW Toolbox branding** - Authentication emails use "PAW Toolbox" (not "Freelance Crawler") with PAW Systems colors (#4264D1, #6CE2FF)
+36. **Email template is HTML** - Professional gradient design with bold code on separate line, includes plain text fallback
+37. **SMTP uses Microsoft 365** - Production emails sent from info@paw-systems.com via smtp.office365.com
 
 ### Production Checklist
 
@@ -703,6 +728,6 @@ For issues or questions, refer to:
 
 ---
 
-**Last Updated**: January 2026
-**Version**: 1.1
+**Last Updated**: January 11, 2026
+**Version**: 1.2
 **Maintained by**: PAW Systems Team
