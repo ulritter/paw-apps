@@ -4,7 +4,7 @@
 
 PAW Systems is a secure, multi-service web application platform consisting of:
 
-1. **Landing Page** - Protected entry point with service selection
+1. **Landing Page** - Protected entry point with service selection and personalized pending tasks widget
 2. **Freelance Crawler** - Automated job scraping and management system
 3. **PDF Converter** - AI-powered PDF to Excel conversion using Claude AI
 4. **Team Todo List** - Shared team task management with priorities and categories
@@ -513,6 +513,20 @@ All protected pages include:
 
 ## 🔍 Key Features
 
+### Landing Page
+- **Personalized pending tasks widget** - Shows incomplete tasks assigned to logged-in user
+- **Expandable task list** - Collapsed by default showing task count, expands inline to show full list
+- **Overdue task highlighting** - Red indicators and pulsing badge for overdue tasks
+- **Priority indicators** - Color-coded emoji indicators (🔴 high, 🟡 medium, 🟢 low)
+- **Due date display** - German date format (DD.MM.YYYY) with overdue calculation
+- **Click-to-navigate** - Click any task to open Todo List app with task pre-selected
+- **Glassmorphism design** - Translucent backdrop-blur widget matching site design system
+- **Mobile responsive** - Adapts layout for mobile devices with stacked elements
+- **Zero tasks celebration** - Shows "🎉 Keine offenen Aufgaben!" when no pending tasks
+- **Error handling** - Displays warning icon if task loading fails
+- **Secure implementation** - XSS protection using safe DOM methods (textContent)
+- **Automatic loading** - Tasks load immediately after successful authentication
+
 ### Freelance Crawler
 - **Multi-provider job scraping** - Automated crawling from multiple job boards
 - **Selenium-based automation** - Headless browser for JavaScript-heavy sites
@@ -660,6 +674,10 @@ When working with this application:
 35. **Email uses PAW Toolbox branding** - Authentication emails use "PAW Toolbox" (not "Freelance Crawler") with PAW Systems colors (#4264D1, #6CE2FF)
 36. **Email template is HTML** - Professional gradient design with bold code on separate line, includes plain text fallback
 37. **SMTP uses Microsoft 365** - Production emails sent from info@paw-systems.com via smtp.office365.com
+38. **Landing page has pending tasks widget** - Displays incomplete tasks assigned to logged-in user, expandable widget with glassmorphism design
+39. **Pending tasks auto-load** - Widget loads automatically after successful authentication via `loadPendingTasks(userEmail)` call in `checkAuth()`
+40. **Pending tasks use safe DOM** - All task rendering uses `textContent` and `createElement` for XSS protection, no `innerHTML` for user data
+41. **Pending tasks widget toggle** - Expand/collapse resets inline `maxHeight` style to allow CSS transitions to work properly
 
 ### Production Checklist
 
@@ -728,6 +746,6 @@ For issues or questions, refer to:
 
 ---
 
-**Last Updated**: January 11, 2026
-**Version**: 1.2
+**Last Updated**: January 12, 2026
+**Version**: 1.3
 **Maintained by**: PAW Systems Team

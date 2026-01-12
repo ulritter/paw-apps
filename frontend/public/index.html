@@ -199,6 +199,221 @@
             box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
         }
 
+        /* Pending Tasks Widget Styles */
+        .pending-tasks-widget {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            display: none;
+        }
+
+        .pending-tasks-widget:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .tasks-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 1.75rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .tasks-header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .tasks-icon {
+            font-size: 2rem;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+
+        .tasks-label {
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .task-count {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .task-count.has-overdue {
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            animation: pulse-count 2s ease-in-out infinite;
+        }
+
+        .expand-btn {
+            background: rgba(255, 255, 255, 0.3);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .expand-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .tasks-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+
+        .tasks-content.expanded {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .tasks-list {
+            padding: 0 1.75rem 1.75rem 1.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .task-item {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: fadeInTask 0.4s ease forwards;
+        }
+
+        .task-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .task-item.task-overdue {
+            border-left: 4px solid #EF4444;
+            background: linear-gradient(to right, rgba(239, 68, 68, 0.05), white);
+        }
+
+        .task-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .priority-indicator {
+            font-size: 1rem;
+        }
+
+        .priority-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #718096;
+            letter-spacing: 0.05em;
+        }
+
+        .task-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #2d3748;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .task-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .task-due {
+            font-size: 0.875rem;
+            color: #718096;
+        }
+
+        .task-due.due-overdue {
+            color: #DC2626;
+            font-weight: 600;
+        }
+
+        .task-category {
+            font-size: 0.875rem;
+            color: #718096;
+            font-style: italic;
+        }
+
+        .no-tasks {
+            text-align: center;
+            padding: 2rem;
+            color: white;
+            font-size: 1.1rem;
+        }
+
+        .no-tasks p {
+            opacity: 0.9;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+
+        .widget-error .task-count {
+            background: rgba(239, 68, 68, 0.8);
+            color: white;
+        }
+
+        @keyframes fadeInTask {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse-count {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
         @media (max-width: 768px) {
             .apps-grid {
                 grid-template-columns: 1fr;
@@ -212,6 +427,35 @@
                 position: static;
                 margin-bottom: 2rem;
                 justify-content: center;
+            }
+
+            .tasks-header {
+                padding: 1rem;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+
+            .expand-btn {
+                width: 100%;
+                text-align: center;
+            }
+
+            .task-item {
+                padding: 1rem;
+            }
+
+            .task-header {
+                flex-wrap: wrap;
+            }
+
+            .task-title {
+                flex-basis: 100%;
+                margin-top: 0.25rem;
+            }
+
+            .tasks-list {
+                padding: 0 1rem 1rem 1rem;
             }
         }
     </style>
@@ -227,6 +471,25 @@
             <img src="/pws-logo.png" alt="PAW Systems" class="logo">
             <h1 class="title">Willkommen bei PAW Systems</h1>
             <p class="subtitle">Wählen Sie eine Anwendung</p>
+        </div>
+
+        <!-- Pending Tasks Widget -->
+        <div class="pending-tasks-widget" id="pendingTasksWidget">
+            <div class="tasks-header" onclick="toggleTasksWidget()">
+                <div class="tasks-header-left">
+                    <span class="tasks-icon">✓</span>
+                    <div class="tasks-label">
+                        Meine Aufgaben
+                        <span class="task-count" id="taskCount">0</span>
+                    </div>
+                </div>
+                <button class="expand-btn" id="expandBtn">▼ Anzeigen</button>
+            </div>
+            <div class="tasks-content" id="tasksContent">
+                <div class="tasks-list" id="tasksList">
+                    <!-- Tasks will be dynamically inserted here -->
+                </div>
+            </div>
         </div>
 
         <div class="apps-grid">
@@ -329,6 +592,9 @@
                     }
                 }
 
+                // Load pending tasks for the user
+                loadPendingTasks(userEmail);
+
                 return true;
             } catch (error) {
                 console.error('Auth check failed:', error);
@@ -349,6 +615,222 @@
                 console.error('Logout failed:', error);
                 window.location.href = '/login.html';
             }
+        }
+
+        // Pending Tasks Widget Functions
+
+        async function loadPendingTasks(userEmail) {
+            const widget = document.getElementById('pendingTasksWidget');
+            const countBadge = document.getElementById('taskCount');
+            const tasksList = document.getElementById('tasksList');
+
+            if (!widget || !countBadge || !tasksList) {
+                console.error('Pending tasks widget elements not found');
+                return;
+            }
+
+            try {
+                countBadge.textContent = '⟳';
+
+                const response = await fetch(
+                    `/api/todos?assigned_to=${encodeURIComponent(userEmail)}&completed=false`,
+                    { credentials: 'include' }
+                );
+
+                if (response.status === 401) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const tasks = await response.json();
+                countBadge.textContent = tasks.length;
+
+                const now = new Date();
+                const overdueTasks = tasks.filter(task => {
+                    if (!task.due_date) return false;
+                    const dueDate = safeParseDate(task.due_date);
+                    return dueDate && dueDate < now;
+                });
+
+                if (overdueTasks.length > 0) {
+                    countBadge.classList.add('has-overdue');
+                } else {
+                    countBadge.classList.remove('has-overdue');
+                }
+
+                renderTasks(tasks, now);
+                widget.style.display = 'block';
+
+            } catch (error) {
+                console.error('Failed to load pending tasks:', error);
+                countBadge.textContent = '⚠';
+                countBadge.title = 'Fehler beim Laden der Aufgaben';
+                widget.classList.add('widget-error');
+            }
+        }
+
+        function toggleTasksWidget() {
+            const tasksContent = document.getElementById('tasksContent');
+            const expandBtn = document.getElementById('expandBtn');
+
+            if (!tasksContent || !expandBtn) return;
+
+            const isExpanded = tasksContent.classList.contains('expanded');
+
+            if (isExpanded) {
+                tasksContent.classList.remove('expanded');
+                tasksContent.style.maxHeight = '';
+                expandBtn.textContent = '▼ Anzeigen';
+            } else {
+                tasksContent.classList.add('expanded');
+                expandBtn.textContent = '▲ Verbergen';
+
+                const contentHeight = document.getElementById('tasksList').scrollHeight;
+                tasksContent.style.maxHeight = `${Math.min(contentHeight + 50, 600)}px`;
+            }
+        }
+
+        function renderTasks(tasks, currentDate) {
+            const tasksList = document.getElementById('tasksList');
+
+            if (!tasksList) return;
+
+            if (tasks.length === 0) {
+                const noTasksDiv = document.createElement('div');
+                noTasksDiv.className = 'no-tasks';
+                const p = document.createElement('p');
+                p.textContent = '🎉 Keine offenen Aufgaben!';
+                noTasksDiv.appendChild(p);
+                tasksList.textContent = '';
+                tasksList.appendChild(noTasksDiv);
+                return;
+            }
+
+            tasksList.textContent = '';
+
+            tasks.forEach((task, index) => {
+                const overdueInfo = calculateOverdueInfo(task, currentDate);
+                const priorityConfig = getPriorityConfig(task.priority);
+
+                const taskItem = document.createElement('div');
+                taskItem.className = `task-item ${overdueInfo.isOverdue ? 'task-overdue' : ''}`;
+                taskItem.style.animationDelay = `${index * 0.1}s`;
+                taskItem.onclick = () => openTask(task.id);
+
+                const taskHeader = document.createElement('div');
+                taskHeader.className = 'task-header';
+
+                const priorityIndicator = document.createElement('span');
+                priorityIndicator.className = 'priority-indicator';
+                priorityIndicator.style.color = priorityConfig.color;
+                priorityIndicator.textContent = priorityConfig.icon;
+
+                const priorityLabel = document.createElement('span');
+                priorityLabel.className = 'priority-label';
+                priorityLabel.textContent = `[${task.priority.toUpperCase()}]`;
+
+                const taskTitle = document.createElement('span');
+                taskTitle.className = 'task-title';
+                taskTitle.textContent = task.title;
+
+                taskHeader.appendChild(priorityIndicator);
+                taskHeader.appendChild(priorityLabel);
+                taskHeader.appendChild(taskTitle);
+
+                const taskDetails = document.createElement('div');
+                taskDetails.className = 'task-details';
+
+                const taskDue = document.createElement('div');
+                taskDue.className = `task-due ${overdueInfo.isOverdue ? 'due-overdue' : ''}`;
+                taskDue.textContent = overdueInfo.displayText;
+
+                taskDetails.appendChild(taskDue);
+
+                if (task.category) {
+                    const taskCategory = document.createElement('div');
+                    taskCategory.className = 'task-category';
+                    taskCategory.textContent = `Kategorie: ${task.category}`;
+                    taskDetails.appendChild(taskCategory);
+                }
+
+                taskItem.appendChild(taskHeader);
+                taskItem.appendChild(taskDetails);
+                tasksList.appendChild(taskItem);
+            });
+        }
+
+        function calculateOverdueInfo(task, currentDate) {
+            if (!task.due_date) {
+                return { isOverdue: false, daysOverdue: 0, displayText: 'Keine Frist' };
+            }
+
+            const dueDate = safeParseDate(task.due_date);
+            if (!dueDate) {
+                return { isOverdue: false, daysOverdue: 0, displayText: 'Keine Frist' };
+            }
+
+            const timeDiff = currentDate - dueDate;
+            const daysOverdue = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+
+            const formattedDate = formatDate(dueDate);
+
+            if (daysOverdue > 0) {
+                return {
+                    isOverdue: true,
+                    daysOverdue: daysOverdue,
+                    displayText: `Fällig: ${formattedDate} (${daysOverdue} Tag${daysOverdue > 1 ? 'e' : ''} überfällig)`
+                };
+            } else if (daysOverdue === 0) {
+                return {
+                    isOverdue: false,
+                    daysOverdue: 0,
+                    displayText: `Fällig: ${formattedDate} (Heute)`
+                };
+            } else {
+                return {
+                    isOverdue: false,
+                    daysOverdue: 0,
+                    displayText: `Fällig: ${formattedDate}`
+                };
+            }
+        }
+
+        function formatDate(date) {
+            return date.toLocaleDateString('de-DE', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        }
+
+        function safeParseDate(dateString) {
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) {
+                    return null;
+                }
+                return date;
+            } catch (error) {
+                console.error('Date parsing failed:', error);
+                return null;
+            }
+        }
+
+        function getPriorityConfig(priority) {
+            const configs = {
+                high: { color: '#EF4444', icon: '🔴' },
+                medium: { color: '#F59E0B', icon: '🟡' },
+                low: { color: '#10B981', icon: '🟢' }
+            };
+            return configs[priority] || configs.medium;
+        }
+
+        function openTask(taskId) {
+            window.location.href = `/todos/?task=${taskId}`;
         }
 
         // Run auth check immediately
