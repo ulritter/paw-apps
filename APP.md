@@ -74,18 +74,37 @@ All services require authentication and are designed for internal company use.
 
 ### Cookie Configuration
 
+**Development Environment:**
 ```python
-# Development: secure=False (HTTP allowed)
-# Production: secure=True (HTTPS only)
 response.set_cookie(
     key="auth_token",
     value=access_token,
     httponly=True,
-    samesite="lax",
-    secure=is_production,  # Environment-aware
-    path="/"  # Available across all routes
+    samesite="lax",      # Works with HTTP
+    secure=False,         # HTTP allowed
+    path="/"
 )
 ```
+
+**Production Environment:**
+```python
+response.set_cookie(
+    key="auth_token",
+    value=access_token,
+    httponly=True,
+    samesite="none",     # Required for Firefox iOS compatibility
+    secure=True,         # HTTPS required (cookies rejected on HTTP)
+    path="/"
+    # No explicit domain - browser uses tools.pawsys.com
+)
+```
+
+**Important Cookie Behavior:**
+- `SameSite=none` + `Secure=true` = **HTTPS required**
+- HTTP cookies with these settings are **rejected by all browsers**
+- Firefox iOS is particularly strict about secure cookie requirements
+- Must have HTTP→HTTPS redirect in Apache for login to work
+- No explicit domain parameter (Firefox iOS can block cookies with explicit domain)
 
 ### Authentication Email Template
 
@@ -275,6 +294,44 @@ Production uses Let's Encrypt for SSL:
 # Auto-renewal (runs via cron)
 ./renew-certificates.sh
 ```
+
+### Apache Reverse Proxy Configuration (Virtualmin)
+
+When using Virtualmin with Apache as reverse proxy:
+
+**HTTP to HTTPS Redirect** (Required for secure cookies):
+
+```apache
+<VirtualHost *:80>
+    ServerName tools.pawsys.com
+
+    # Redirect all HTTP traffic to HTTPS (except Let's Encrypt challenges)
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} !^/.well-known/
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}$1 [R=301,L]
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName tools.pawsys.com
+
+    # SSL Configuration
+    SSLEngine on
+    SSLCertificateFile /etc/letsencrypt/live/tools.pawsys.com/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/tools.pawsys.com/privkey.pem
+
+    # Proxy to Docker nginx
+    ProxyPreserveHost On
+    ProxyPass /.well-known !
+    ProxyPass / http://localhost:8081/
+    ProxyPassReverse / http://localhost:8081/
+</VirtualHost>
+```
+
+**Why HTTP→HTTPS redirect is critical:**
+- Production cookies use `SameSite=none` and `Secure=true`
+- These cookies **only work over HTTPS**
+- Without redirect, HTTP login fails (cookies rejected by browser)
+- Firefox iOS particularly strict about secure cookie requirements
 
 ## 🗄️ Database
 
@@ -615,6 +672,21 @@ All protected pages include:
 - **Cause**: Secure flag mismatch
 - **Fix**: Ensure `ENV` variable is set correctly
 
+**6. Firefox iOS Login Fails (Redirects Back to Login)**
+- **Cause**: Accessing via HTTP instead of HTTPS
+- **Symptom**: Login shows "Anmeldung erfolgreich!" but redirects back to login page
+- **Fix**: Use `https://tools.pawsys.com` (NOT `http://`)
+- **Solution**: Configure Apache HTTP→HTTPS redirect (see Deployment section)
+- **Why**: Production cookies require HTTPS (`SameSite=none` + `Secure=true`)
+- **Debug**: Check browser console for `[Firefox iOS Debug]` log messages
+
+**7. Login Shows Cookie Timeout Warning**
+- **Symptom**: After 3 seconds see "Cookie-Problem erkannt. Falls Login fehlschlägt, versuchen Sie Safari."
+- **Cause**: Cookie never becomes available after 10 polling attempts
+- **Check**: Browser console shows `authenticated: false` on all attempts
+- **Likely Issue**: Accessing via HTTP instead of HTTPS
+- **Solution**: Ensure HTTP→HTTPS redirect is configured in Apache
+
 ### Debug Commands
 
 ```bash
@@ -678,6 +750,15 @@ When working with this application:
 39. **Pending tasks auto-load** - Widget loads automatically after successful authentication via `loadPendingTasks(userEmail)` call in `checkAuth()`
 40. **Pending tasks use safe DOM** - All task rendering uses `textContent` and `createElement` for XSS protection, no `innerHTML` for user data
 41. **Pending tasks widget toggle** - Expand/collapse resets inline `maxHeight` style to allow CSS transitions to work properly
+42. **Production cookies require HTTPS** - Cookies use `SameSite=none` + `Secure=true` which only work over HTTPS
+43. **HTTP to HTTPS redirect critical** - Must have Apache redirect to prevent cookie rejection on HTTP
+44. **Firefox iOS cookie requirements** - Particularly strict: requires HTTPS, no explicit domain parameter, SameSite=none
+45. **Login has active cookie verification** - Polls auth endpoint every 300ms (max 10 attempts) before redirecting to ensure cookie works
+46. **Cookie verification has debug logging** - Console logs `[Firefox iOS Debug]` messages showing cookie polling status
+47. **Login timeout shows user message** - If cookie never available after 10 attempts, shows "Cookie-Problem erkannt" message
+48. **No explicit cookie domain** - Production cookies don't set explicit domain parameter (Firefox iOS can block with explicit domain)
+49. **Development uses different cookie settings** - Dev: `SameSite=lax`, `Secure=false` (HTTP compatible); Prod: `SameSite=none`, `Secure=true` (HTTPS only)
+50. **Login redirect includes parameter** - After successful login redirects to `/?login=success` to signal fresh login for timing control
 
 ### Production Checklist
 
@@ -746,6 +827,6 @@ For issues or questions, refer to:
 
 ---
 
-**Last Updated**: January 12, 2026
-**Version**: 1.3
+**Last Updated**: January 13, 2026
+**Version**: 1.4
 **Maintained by**: PAW Systems Team
