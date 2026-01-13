@@ -301,8 +301,9 @@
                 if (response.ok) {
                     showMessage('Anmeldung erfolgreich! Weiterleitung...', 'success');
                     // Longer delay for Firefox iOS to save cookie properly
+                    // Add login=success parameter to signal fresh login
                     setTimeout(() => {
-                        window.location.href = '/';
+                        window.location.href = '/?login=success';
                     }, 1500);
                 } else {
                     showMessage(data.detail || 'Ungültiger Code', 'error');

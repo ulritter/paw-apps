@@ -833,8 +833,21 @@
             window.location.href = `/todos/?task=${taskId}`;
         }
 
-        // Run auth check immediately
-        checkAuth();
+        // Check if we just logged in (Firefox iOS cookie timing issue)
+        const urlParams = new URLSearchParams(window.location.search);
+        const justLoggedIn = urlParams.get('login') === 'success';
+
+        if (justLoggedIn) {
+            // Remove the login parameter from URL
+            window.history.replaceState({}, document.title, '/');
+            // Wait longer for Firefox iOS to process the cookie
+            setTimeout(() => {
+                checkAuth();
+            }, 1000);
+        } else {
+            // Run auth check immediately for normal page loads
+            checkAuth();
+        }
     </script>
 </body>
 </html>
