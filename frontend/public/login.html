@@ -307,6 +307,7 @@
 
                     const checkCookieAndRedirect = async () => {
                         attempts++;
+                        console.log(`[Firefox iOS Debug] Attempt ${attempts}/${maxAttempts} to verify cookie`);
 
                         // Check if auth cookie exists by testing the auth endpoint
                         try {
@@ -314,21 +315,30 @@
                                 credentials: 'include'
                             });
                             const authData = await authCheck.json();
+                            console.log(`[Firefox iOS Debug] Auth check result:`, authData);
 
                             if (authData.authenticated) {
                                 // Cookie is working! Redirect now
+                                console.log('[Firefox iOS Debug] Cookie confirmed working! Redirecting...');
                                 window.location.href = '/?login=success';
                             } else if (attempts < maxAttempts) {
                                 // Try again in 300ms
+                                console.log(`[Firefox iOS Debug] Cookie not ready, retrying in 300ms...`);
                                 setTimeout(checkCookieAndRedirect, 300);
                             } else {
                                 // Timeout - redirect anyway and let landing page handle it
-                                window.location.href = '/?login=success';
+                                console.warn('[Firefox iOS Debug] Timeout reached! Cookie never became available. Redirecting anyway...');
+                                showMessage('Cookie-Problem erkannt. Falls Login fehlschlägt, versuchen Sie Safari.', 'error');
+                                setTimeout(() => {
+                                    window.location.href = '/?login=success';
+                                }, 2000);
                             }
                         } catch (error) {
+                            console.error(`[Firefox iOS Debug] Auth check error:`, error);
                             if (attempts < maxAttempts) {
                                 setTimeout(checkCookieAndRedirect, 300);
                             } else {
+                                console.error('[Firefox iOS Debug] Timeout with errors. Redirecting...');
                                 window.location.href = '/?login=success';
                             }
                         }

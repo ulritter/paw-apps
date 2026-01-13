@@ -554,22 +554,18 @@ async def verify_code(request: VerifyCodeRequest, response: Response):
         # Use "none" for production to support Firefox iOS, "lax" for development
         samesite_value = "none" if is_production else "lax"
 
-        # Set explicit domain in production for Firefox iOS compatibility
-        cookie_params = {
-            "key": "auth_token",
-            "value": access_token,
-            "httponly": True,
-            "max_age": validity_minutes * 60,
-            "samesite": samesite_value,
-            "secure": is_production,
-            "path": "/"
-        }
-
-        # Add explicit domain for production to help Firefox iOS
-        if is_production:
-            cookie_params["domain"] = "pawsys.com"  # Works for *.pawsys.com
-
-        response.set_cookie(**cookie_params)
+        # Set cookie without explicit domain - let browser use current domain
+        # Firefox iOS may block cookies with explicit domain parameters
+        response.set_cookie(
+            key="auth_token",
+            value=access_token,
+            httponly=True,
+            max_age=validity_minutes * 60,
+            samesite=samesite_value,
+            secure=is_production,
+            path="/"
+            # No explicit domain - browser will use tools.pawsys.com
+        )
         
         return {
             "message": "Authentication successful",
