@@ -687,6 +687,16 @@ All protected pages include:
 - **Likely Issue**: Accessing via HTTP instead of HTTPS
 - **Solution**: Ensure HTTP→HTTPS redirect is configured in Apache
 
+**8. Logout Button Not Visible on Mobile**
+- **Symptom**: Logout button and user email not visible on iPhone/mobile devices
+- **Cause**: Incorrect layout structure or missing responsive CSS
+- **Fixed Pages**: Landing page, Crawler page, PDF Converter page
+- **Solution**:
+  - Landing page: `user-info` moved inside `.container` with `position: relative` on parent
+  - Crawler page: Header uses flex-direction column on mobile with full-width centered elements
+  - PDF Converter: Uses Tailwind responsive classes `flex-col md:flex-row`, `w-full md:w-auto`
+- **Mobile CSS**: Media query `@media (max-width: 768px)` applies mobile-specific layouts
+
 ### Debug Commands
 
 ```bash
@@ -759,6 +769,7 @@ When working with this application:
 48. **No explicit cookie domain** - Production cookies don't set explicit domain parameter (Firefox iOS can block with explicit domain)
 49. **Development uses different cookie settings** - Dev: `SameSite=lax`, `Secure=false` (HTTP compatible); Prod: `SameSite=none`, `Secure=true` (HTTPS only)
 50. **Login redirect includes parameter** - After successful login redirects to `/?login=success` to signal fresh login for timing control
+51. **Mobile responsive logout button** - All pages use mobile-specific CSS at 768px breakpoint: landing page positions user-info inside container, crawler uses vertical flex layout, PDF converter uses Tailwind responsive classes
 
 ### Production Checklist
 
@@ -828,5 +839,5 @@ For issues or questions, refer to:
 ---
 
 **Last Updated**: January 13, 2026
-**Version**: 1.4
+**Version**: 1.5
 **Maintained by**: PAW Systems Team
