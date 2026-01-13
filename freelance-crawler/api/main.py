@@ -551,12 +551,14 @@ async def verify_code(request: VerifyCodeRequest, response: Response):
         expires_at = datetime.utcnow() + access_token_expires
         # Use secure cookies in production (HTTPS), allow HTTP in development
         is_production = os.getenv("ENV", "development") == "production"
+        # Use "none" for production to support Firefox iOS, "lax" for development
+        samesite_value = "none" if is_production else "lax"
         response.set_cookie(
             key="auth_token",
             value=access_token,
             httponly=True,
             max_age=validity_minutes * 60,
-            samesite="lax",
+            samesite=samesite_value,
             secure=is_production,  # True for HTTPS in production, False for HTTP in dev
             path="/"  # Make cookie available across all paths
         )

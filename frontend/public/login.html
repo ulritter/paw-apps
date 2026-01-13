@@ -300,9 +300,10 @@
 
                 if (response.ok) {
                     showMessage('Anmeldung erfolgreich! Weiterleitung...', 'success');
+                    // Longer delay for Firefox iOS to save cookie properly
                     setTimeout(() => {
                         window.location.href = '/';
-                    }, 1000);
+                    }, 1500);
                 } else {
                     showMessage(data.detail || 'Ungültiger Code', 'error');
                     verifyCodeBtn.disabled = false;
