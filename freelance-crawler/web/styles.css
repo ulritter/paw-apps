@@ -125,8 +125,23 @@ a:hover {
 }
 @media (max-width: 768px) {
   body { padding: 1rem; }
-  h1 { font-size: 1.5rem; }
-  header { padding: 1.5rem; }
+  h1 { font-size: 1.2rem !important; }
+  header {
+    padding: 1rem !important;
+  }
+  header > div {
+    flex-direction: column !important;
+    gap: 1rem !important;
+    align-items: stretch !important;
+  }
+  .user-info {
+    justify-content: center !important;
+    width: 100% !important;
+  }
+  .home-btn {
+    width: 100%;
+    text-align: center;
+  }
 }
 
 /* Tab Navigation */

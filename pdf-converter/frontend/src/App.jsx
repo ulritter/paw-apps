@@ -175,11 +175,11 @@ export default function AIPdfToExcel() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg p-8 mb-6">
-          <div className="mb-4 flex justify-between items-center">
+        <div className="bg-white rounded-xl shadow-lg p-4 md:p-8 mb-6">
+          <div className="mb-4 flex flex-col md:flex-row justify-between items-center gap-4">
             <button
               onClick={handleHome}
-              className="px-4 py-2 rounded-full transition-all"
+              className="px-4 py-2 rounded-full transition-all w-full md:w-auto"
               style={{
                 background: 'rgba(139, 92, 246, 0.1)',
                 color: '#8b5cf6',
@@ -200,13 +200,13 @@ export default function AIPdfToExcel() {
             </button>
             <img src="/pws-logo.png" alt="People Work Systems" className="h-10 md:h-12 object-contain" />
             <div
-              className="flex items-center gap-3 px-6 py-3 rounded-full"
+              className="flex items-center gap-3 px-6 py-3 rounded-full w-full md:w-auto justify-center"
               style={{
                 background: 'rgba(139, 92, 246, 0.1)',
                 backdropFilter: 'blur(10px)'
               }}
             >
-              <span style={{ color: '#8b5cf6', fontSize: '0.9rem', fontWeight: '500' }}>
+              <span style={{ color: '#8b5cf6', fontSize: '0.9rem', fontWeight: '500' }} className="truncate">
                 {userEmail}
               </span>
               <button
