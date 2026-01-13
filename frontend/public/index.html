@@ -25,6 +25,7 @@
         .container {
             max-width: 1200px;
             width: 100%;
+            position: relative;
         }
 
         .header {
@@ -466,12 +467,11 @@
     </style>
 </head>
 <body>
-    <div class="user-info" id="userInfo" style="display: none;">
-        <span class="user-email" id="userEmail"></span>
-        <button class="logout-btn" onclick="logout()">Abmelden</button>
-    </div>
-
     <div class="container">
+        <div class="user-info" id="userInfo" style="display: none;">
+            <span class="user-email" id="userEmail"></span>
+            <button class="logout-btn" onclick="logout()">Abmelden</button>
+        </div>
         <div class="header">
             <img src="/pws-logo.png" alt="PAW Systems" class="logo">
             <h1 class="title">Willkommen bei PAW Systems</h1>
