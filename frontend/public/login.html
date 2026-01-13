@@ -300,11 +300,42 @@
 
                 if (response.ok) {
                     showMessage('Anmeldung erfolgreich! Weiterleitung...', 'success');
-                    // Longer delay for Firefox iOS to save cookie properly
-                    // Add login=success parameter to signal fresh login
-                    setTimeout(() => {
-                        window.location.href = '/?login=success';
-                    }, 1500);
+
+                    // Wait for cookie to be set, then verify it exists before redirecting
+                    let attempts = 0;
+                    const maxAttempts = 10;
+
+                    const checkCookieAndRedirect = async () => {
+                        attempts++;
+
+                        // Check if auth cookie exists by testing the auth endpoint
+                        try {
+                            const authCheck = await fetch('/api/crawler/auth/check', {
+                                credentials: 'include'
+                            });
+                            const authData = await authCheck.json();
+
+                            if (authData.authenticated) {
+                                // Cookie is working! Redirect now
+                                window.location.href = '/?login=success';
+                            } else if (attempts < maxAttempts) {
+                                // Try again in 300ms
+                                setTimeout(checkCookieAndRedirect, 300);
+                            } else {
+                                // Timeout - redirect anyway and let landing page handle it
+                                window.location.href = '/?login=success';
+                            }
+                        } catch (error) {
+                            if (attempts < maxAttempts) {
+                                setTimeout(checkCookieAndRedirect, 300);
+                            } else {
+                                window.location.href = '/?login=success';
+                            }
+                        }
+                    };
+
+                    // Start checking after initial delay
+                    setTimeout(checkCookieAndRedirect, 500);
                 } else {
                     showMessage(data.detail || 'Ungültiger Code', 'error');
                     verifyCodeBtn.disabled = false;
