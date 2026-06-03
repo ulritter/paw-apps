@@ -22,12 +22,12 @@ function formatPostedDate(job) {
     return job.posted;
   }
   
-  // If it's a time (HH:MM), use today's date
+  // If it's a time (HH:MM), the job was posted that same day — use created_at date
   if (job.posted && /^\d{2}:\d{2}$/.test(job.posted)) {
-    const today = new Date();
-    const day = String(today.getDate()).padStart(2, '0');
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const year = today.getFullYear();
+    const baseDate = job.created_at ? new Date(job.created_at) : new Date();
+    const day = String(baseDate.getDate()).padStart(2, '0');
+    const month = String(baseDate.getMonth() + 1).padStart(2, '0');
+    const year = baseDate.getFullYear();
     return `${day}.${month}.${year}`;
   }
   

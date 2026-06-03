@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup
 from .base_crawler import BaseCrawler
 import time
 import os
+import re
+from datetime import datetime, timedelta
 
 class FreelancerMapCrawler(BaseCrawler):
     """Crawler for FreelancerMap.de"""
@@ -123,12 +125,14 @@ class FreelancerMapCrawler(BaseCrawler):
             location = ', '.join(location_parts) if location_parts else 'N/A'
             
             # Build job data
+            posted_text = posted_elem.get_text(strip=True) if posted_elem else 'N/A'
             job_data = {
                 'title': title_elem.get_text(strip=True) if title_elem else 'N/A',
                 'link': self._make_absolute_url(title_elem.get('href')) if title_elem else None,
                 'company': company_elem.get_text(strip=True) if company_elem else 'N/A',
                 'location': location,
-                'posted': posted_elem.get_text(strip=True) if posted_elem else 'N/A',
+                'posted': posted_text,
+                'posted_date': self._parse_posted_date(posted_text),
             }
             
             # Add contract type to company field for context
@@ -142,6 +146,29 @@ class FreelancerMapCrawler(BaseCrawler):
             self.logger.debug(f"Error parsing job card: {e}")
             return None
     
+    def _parse_posted_date(self, posted_text):
+        """Parse posted date string to datetime object"""
+        if not posted_text or posted_text == 'N/A':
+            return None
+        try:
+            now = datetime.now()
+            if re.match(r'^\d{1,2}:\d{2}$', posted_text):
+                hour, minute = map(int, posted_text.split(':'))
+                return now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            if re.match(r'^\d{2}\.\d{2}\.\d{4}$', posted_text):
+                return datetime.strptime(posted_text, '%d.%m.%Y')
+            if re.match(r'^\d{1,2}/\d{4}$', posted_text):
+                month, year = map(int, posted_text.split('/'))
+                return datetime(year, month, 1)
+            if 'heute' in posted_text.lower() or 'today' in posted_text.lower():
+                return now
+            if 'gestern' in posted_text.lower() or 'yesterday' in posted_text.lower():
+                return now - timedelta(days=1)
+            return None
+        except Exception as e:
+            self.logger.debug(f"Could not parse posted date '{posted_text}': {e}")
+            return None
+
     def _make_absolute_url(self, url):
         """Convert relative URL to absolute"""
         if not url:
